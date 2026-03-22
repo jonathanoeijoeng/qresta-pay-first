@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     procps \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) gd zip pdo_pgsql pgsql
+    && docker-php-ext-install -j$(nproc) gd zip pdo_pgsql pgsql pcntl
 
 # 2. Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
