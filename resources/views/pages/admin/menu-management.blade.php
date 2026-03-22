@@ -50,11 +50,12 @@ new class extends Component {
     }
 }; ?>
 
-<div class="p-6 bg-slate-50 min-h-screen">
+<div class="p-4 bg-slate-50 min-h-screen">
     {{-- Header Section --}}
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-brand-dark tracking-tight">Manajemen Menu & Cabang</h1>
-        <div class="text-sm text-slate-500 bg-brand-accent px-4 py-1.5 rounded-full border border-brand/10 font-medium">
+    <div class="block md:flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-brand-dark mb-3 md:mb-0">Manajemen Menu & Cabang</h1>
+        <div
+            class="w-fit text-sm text-slate-500 bg-brand-accent px-4 py-1.5 rounded-full border border-brand/10 font-medium">
             {{ now()->translatedFormat('d M Y') }}
         </div>
     </div>
@@ -91,7 +92,7 @@ new class extends Component {
                 </div>
             </div>
 
-            <div class="p-6">
+            <div class="p-4 md:p-6">
                 @foreach($branch->grouped_menus as $categoryName => $menus)
                 <div class="mb-10 last:mb-0">
                     {{-- Kategori Label --}}
@@ -105,7 +106,7 @@ new class extends Component {
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         @foreach($menus as $menu)
                         <div
-                            class="group flex items-center justify-between p-4 rounded-xl border transition-all duration-200 {{ $menu->is_available ? 'bg-white border-slate-200 hover:border-brand/40 hover:shadow-md hover:shadow-brand/5' : 'bg-slate-50/80 border-slate-100 opacity-60 grayscale-[0.5]' }}">
+                            class="group flex items-center justify-between p-3 rounded-xl border transition-all duration-200 {{ $menu->is_available ? 'bg-white border-slate-200 hover:border-brand/40 hover:shadow-md hover:shadow-brand/5' : 'bg-slate-100 border-slate-100 opacity-60 grayscale-[0.5]' }}">
                             <div class="flex-1 pr-3">
                                 <p class="font-bold text-slate-800 group-hover:text-brand transition-colors truncate">
                                     {{ $menu->name }}
