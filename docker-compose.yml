@@ -32,11 +32,26 @@ services:
     depends_on:
       - qresta-app
 
-  worker:
+  qresta-db:
+    image: postgres:16-alpine
+    container_name: qresta-db
+    restart: always
+    environment:
+      - POSTGRES_DB=qresta_db
+      - POSTGRES_USER=qresta
+      - POSTGRES_PASSWORD=password
+      - TZ=Asia/Jakarta
+    volumes:
+      # Data disimpan di folder luar agar tidak hilang saat container dihapus
+      - ./docker-compose/postgres/data:/var/lib/postgresql/data
+    networks:
+      - hellojonathan-network
+
+  qresta-worker:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: snippet-manager-worker
+    container_name: qresta-worker
     restart: always
     command: php artisan queue:work --tries=3
     volumes:
@@ -46,11 +61,11 @@ services:
     depends_on:
       - qresta-app
 
-  scheduler:
+  qresta-scheduler:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: snippet-manager-scheduler
+    container_name: qresta-scheduler
     restart: always
     command: sh -c "while [ true ]; do php artisan schedule:run --no-interaction & sleep 60; done"
     volumes:
@@ -60,8 +75,10 @@ services:
     depends_on:
       - qresta-app
 
-  reverb:
+  qresta-reverb:
     build: .
+    container_name: qresta-reverb
+    restart: always
     command: php artisan reverb:start --host=0.0.0.0 --port=8080
     ports:
       - "8080:8080"
