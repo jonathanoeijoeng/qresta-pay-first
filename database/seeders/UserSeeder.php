@@ -20,7 +20,6 @@ class UserSeeder extends Seeder
             'name' => 'Jonathan Owner',
             'email' => 'owner@qresta.com',
             'password' => Hash::make('password'),
-            'role' => 'super_admin',
             'branch_id' => null,
         ]);
 
@@ -29,7 +28,6 @@ class UserSeeder extends Seeder
             'name' => 'Admin Sudirman',
             'email' => 'admin.sudirman@qresta.com',
             'password' => Hash::make('password'),
-            'role' => 'admin_cabang',
             'branch_id' => $sudirman->id,
         ]);
 
@@ -38,7 +36,6 @@ class UserSeeder extends Seeder
             'name' => 'Siti Waitress',
             'email' => 'waitress.sudirman@qresta.com',
             'password' => Hash::make('password'),
-            'role' => 'waitress',
             'branch_id' => $sudirman->id,
         ]);
 
@@ -47,7 +44,6 @@ class UserSeeder extends Seeder
             'name' => 'Chef Juna',
             'email' => 'kitchen.sudirman@qresta.com',
             'password' => Hash::make('password'),
-            'role' => 'kitchen',
             'branch_id' => $sudirman->id,
         ]);
 
@@ -56,7 +52,6 @@ class UserSeeder extends Seeder
             'name' => 'Budi Kasir',
             'email' => 'cashier.menteng@qresta.com',
             'password' => Hash::make('password'),
-            'role' => 'cashier',
             'branch_id' => $menteng->id,
         ]);
     }
