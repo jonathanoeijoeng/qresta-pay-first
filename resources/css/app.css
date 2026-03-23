@@ -15,9 +15,22 @@
         "Noto Color Emoji";
 
     /* Color Brand */
-    --color-brand: #ed8e4a;
+    /* --color-brand: #ed8e4a;
     --color-brand-dark: #2d334a;
-    --color-brand-accent: #fcecdd;
+    --color-brand-accent: #fcecdd; */
+
+    --color-brand: oklch(73.465% 0.14187 53.964);
+    --color-brand-50: oklch(97.797% 0.01089 54.501);
+    --color-brand-100: oklch(95.01% 0.02539 59.915);
+    --color-brand-200: oklch(89.347% 0.05418 58.866);
+    --color-brand-300: oklch(83.642% 0.08378 56.824);
+    --color-brand-400: oklch(78.453% 0.11409 55.612);
+    --color-brand-500: oklch(73.465% 0.14187 53.964);
+    --color-brand-600: oklch(67.317% 0.17406 48.69);
+    --color-brand-700: oklch(56.178% 0.14276 49.256);
+    --color-brand-800: oklch(44.461% 0.10956 50.189);
+    --color-brand-900: oklch(31.734% 0.07421 50.704);
+    --color-brand-950: oklch(24.906% 0.05431 53.46);
 
     /* Color Neutral */
     --color-zinc-50: #fafafa;

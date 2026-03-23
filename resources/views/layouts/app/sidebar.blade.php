@@ -44,6 +44,14 @@
                                 {{ __('Menu & Categories') }}
                             </flux:sidebar.item>
                         </div>
+                        <div x-show="open" x-collapse x-cloak class="pl-8 mt-1 space-y-1">
+                            <flux:sidebar.item :href="route('admin.user-management')"
+                                :current="request()->routeIs('admin.user-management')" wire:navigate size="sm" {{--
+                                Hover state halus dengan warna accent --}}
+                                class="hover:text-brand hover:bg-brand-light/30">
+                                {{ __('User Management') }}
+                            </flux:sidebar.item>
+                        </div>
                     </div>
                 </flux:navlist>
             </flux:sidebar.group>

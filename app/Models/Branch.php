@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Branch extends Model
 {
 
+    protected $fillable = ['name', 'location', 'code', 'color'];
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
