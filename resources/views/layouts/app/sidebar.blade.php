@@ -49,7 +49,7 @@
                                 :current="request()->routeIs('admin.branch-menu-management')" wire:navigate size="sm"
                                 {{-- Hover state halus dengan warna accent --}}
                                 class="hover:text-brand hover:bg-brand-light/30">
-                                {{ __('Branch Menu Management') }}
+                                {{ __('Branch Menu') }}
                             </flux:sidebar.item>
                         </div>
                         <div x-show="open" x-collapse x-cloak class="pl-8 mt-1 space-y-1">
@@ -57,7 +57,7 @@
                                 :current="request()->routeIs('admin.user-management')" wire:navigate size="sm" {{--
                                 Hover state halus dengan warna accent --}}
                                 class="hover:text-brand hover:bg-brand-light/30">
-                                {{ __('User Management') }}
+                                {{ __('Users') }}
                             </flux:sidebar.item>
                         </div>
                     </div>
@@ -68,14 +68,8 @@
         <flux:spacer />
 
         <flux:sidebar.nav>
-            <flux:sidebar.item icon="folder-git-2" href="https://github.com/laravel/livewire-starter-kit"
-                target="_blank">
-                {{ __('Repository') }}
-            </flux:sidebar.item>
-
-            <flux:sidebar.item icon="book-open-text" href="https://laravel.com/docs/starter-kits#livewire"
-                target="_blank">
-                {{ __('Documentation') }}
+            <flux:sidebar.item icon="computer-desktop" href="https://hellojonathan.my.id/" :current="false">
+                {{ __('HelloJonathan') }}
             </flux:sidebar.item>
         </flux:sidebar.nav>
 

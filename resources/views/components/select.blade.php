@@ -17,8 +17,7 @@ $model = $attributes->wire('model')->value();
     <select {{ $attributes->merge([
         'class' => 'has-[option.placeholder:checked]:text-gray-300
         dark:has-[option.placeholder:checked]:text-gray-200/60
-        rounded-lg shadow shadow-zinc-200
-        dark:shadow-zinc-900 bg-white w-full
+        rounded-lg bg-white w-full
         border rounded px-3 py-2
         focus:outline-none
         focus:ring

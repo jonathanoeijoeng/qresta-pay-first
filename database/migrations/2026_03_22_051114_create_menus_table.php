@@ -19,6 +19,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->integer('base_price');
             $table->string('image')->nullable(); // Path foto makanan
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }

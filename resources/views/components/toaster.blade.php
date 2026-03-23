@@ -23,7 +23,7 @@
                 <template x-if="msg.type === 'success'"><span
                         class="text-green-500 text-xl font-bold">✓</span></template>
                 <template x-if="msg.type === 'error'"><span class="text-red-500 text-xl font-bold">✕</span></template>
-                <span x-text="msg.text" class="text-sm font-semibold"></span>
+                <span x-text="msg.text" class="text-sm"></span>
             </div>
 
             <button @click="remove(msg.id)" class="ml-4 text-slate-400 hover:text-slate-600">&times;</button>

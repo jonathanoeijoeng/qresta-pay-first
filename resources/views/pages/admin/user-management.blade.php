@@ -127,28 +127,33 @@ new class extends Component
 
     <x-table :collection="$users">
         <x-slot name="headers">
-            <x-sort-header field="name" label="Nama" :sortField="$sortField" :sortDirection="$sortDirection" />
-            <x-sort-header field="email" label="Email" :sortField="$sortField" :sortDirection="$sortDirection" />
-            <x-sort-header field="role_name" label="Role" :sortField="$sortField" :sortDirection="$sortDirection" />
-            <x-table.cell>Action</x-table.cell>
+            <x-sort-header field="name" label="Nama" showOnMobile="true" :sortField="$sortField"
+                :sortDirection="$sortDirection" />
+            <x-sort-header field="email" label="Email" showOnMobile="true" :sortField="$sortField"
+                :sortDirection="$sortDirection" />
+            <x-sort-header field="role_name" label="Role" showOnMobile="true" :sortField="$sortField"
+                :sortDirection="$sortDirection" />
+            <x-table.cell showOnMobile="true">Action</x-table.cell>
         </x-slot>
         @forelse($users as $user)
         <x-table.row>
-            <x-table.cell>{{ $user->name }}</x-table.cell>
-            <x-table.cell>{{ $user->email }}</x-table.cell>
-            <x-table.cell>
+            <x-table.cell showOnMobile="true">{{ $user->name }}</x-table.cell>
+            <x-table.cell showOnMobile="true">{{ $user->email }}</x-table.cell>
+            <x-table.cell showOnMobile="true">
                 <x-badge color="{{ $user->hasRole('admin') ? 'purple' : 'blue' }}">
                     {{ $user->getRoleNames()->first() }}
                 </x-badge>
             </x-table.cell>
-            <x-table.cell class="flex gap-2 items-center text-center">
-                <x-edit x-on:click="$flux.modal('edit-user').show()" wire:click="edit({{ $user->id }})" />
-                <x-delete :user="$user" />
+            <x-table.cell showOnMobile="true">
+                <div class="flex justify-between items-center">
+                    <x-edit x-on:click="$flux.modal('edit-user').show()" wire:click="edit({{ $user->id }})" />
+                    <x-delete :user="$user" />
+                </div>
             </x-table.cell>
         </x-table.row>
         @empty
         <x-table.row>
-            <x-table.cell colspan="4" class="text-center">
+            <x-table.cell showOnMobile="true" colspan="4" class="text-center">
                 Tidak ada data staff.
             </x-table.cell>
         </x-table.row>

@@ -83,7 +83,7 @@
         $wire.set('{{ $attributes->wire('model')->value() }}', this.raw)
             }
                 }" x-model="display"
-            class="w-full border shadow shadow-zinc-200 dark:shadow-zinc-900 px-3 py-2 focus:outline-none
+            class="w-full border px-3 py-2 focus:outline-none
                     focus:ring
                     focus:border-green-400 bg-white dark:bg-zinc-700 dark:border-brand-600 dark:text-white rounded-r-lg" />
 
@@ -92,7 +92,7 @@
         @else
         {{-- Normal Mode --}}
         <input type="{{ $type }}" {{ $attributes->merge([
-        'class' => 'w-full border shadow shadow-zinc-200 dark:shadow-zinc-900 px-3 py-2
+        'class' => 'w-full border px-3 py-2
         focus:outline-none focus:ring focus:border-brand-400
         bg-white dark:bg-zinc-700 dark:border-brand-600 dark:text-white ' .
         ($addonLeft && $addonRight ? 'rounded-none' :
