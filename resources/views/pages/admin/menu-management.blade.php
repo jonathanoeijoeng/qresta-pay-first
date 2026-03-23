@@ -8,8 +8,8 @@ new class extends Component
 {
     use WithPagination;
 
-    public $sortField = 'name';
-    public $sortDirection = 'desc';
+    public $sortField;
+    public $sortDirection;
     
     public $search = '';
     public $filterCategory = '';
@@ -91,7 +91,7 @@ new class extends Component
                 break;
             default:
                 $query->orderBy('categories.name', 'asc')
-                    ->orderBy('menus.name', 'asc');
+                ->orderBy('menus.name', 'asc');
                 break;
         }
 
