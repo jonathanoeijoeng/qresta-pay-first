@@ -41,6 +41,8 @@ services:
       - POSTGRES_USER=qresta
       - POSTGRES_PASSWORD=password
       - TZ=Asia/Jakarta
+    ports:
+      - "5432:5432"
     volumes:
       # Data disimpan di folder luar agar tidak hilang saat container dihapus
       - ./docker-compose/postgres/data:/var/lib/postgresql/data
