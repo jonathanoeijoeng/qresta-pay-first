@@ -18,16 +18,6 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->foreignId('branch_id')->nullable()->constrained()->onDelete('cascade');
-
-            // Perubahan Role
-            $table->enum('role', [
-                'super_admin',   // Admin Semua Cabang (Pusat)
-                'admin_cabang',  // Admin Cabang Tertentu
-                'waitress',
-                'kitchen',
-                'cashier'
-            ])->default('waitress');
-
             $table->boolean('is_active')->default(true);
             $table->rememberToken();
             $table->timestamps();

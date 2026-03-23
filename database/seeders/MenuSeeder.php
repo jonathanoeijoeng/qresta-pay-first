@@ -47,10 +47,10 @@ class MenuSeeder extends Seeder
                     'category_id' => $category->id,
                     'name' => $name,
                     'slug' => Str::slug($name) . '-' . $branch->id, // Agar slug unik per cabang
-                    'price' => fake()->randomElement([15000, 25000, 35000, 45000, 50000]),
+                    'price' => \fake()->randomElement([15000, 25000, 35000, 45000, 50000]),
                     'description' => 'Deskripsi lezat untuk ' . $name,
                     // is_available random (true/false)
-                    'is_available' => fake()->boolean(80), // 80% peluang untuk aktif
+                    'is_available' => \fake()->boolean(80), // 80% peluang untuk aktif
                 ]);
             }
         }
