@@ -168,7 +168,7 @@ new class extends Component {
                 placeholder="Search anything..." />
                 </div>
             {{-- Category --}}
-            <div class="mb-3 md:mb-0"
+            <div class="mb-3 md:mb-0">
             <x-select name="branch" wire:model.live="filterBranch">
                 <option value="">Semua cabang</option>
                 @foreach($listBranch as $list)
