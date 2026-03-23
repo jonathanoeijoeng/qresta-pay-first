@@ -16,8 +16,10 @@ class Branch extends Model
         return $this->hasMany(User::class);
     }
 
-    public function menus(): HasMany
+    public function menus()
     {
-        return $this->hasMany(Menu::class);
+        return $this->belongsToMany(Menu::class)
+            ->withPivot('price', 'is_available')
+            ->withTimestamps();
     }
 }

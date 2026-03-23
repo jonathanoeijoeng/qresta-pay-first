@@ -36,8 +36,10 @@ class Menu extends Model
         return $this->belongsTo(Category::class);
     }
 
-    public function branch()
+    public function branches()
     {
-        return $this->belongsTo(Branch::class);
+        return $this->belongsToMany(Branch::class)
+            ->withPivot('price', 'is_available')
+            ->withTimestamps();
     }
 }

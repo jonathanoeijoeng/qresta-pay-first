@@ -25,6 +25,7 @@ class RolePermissionSeeder extends Seeder
         Permission::create(['name' => 'view orders']);
         Permission::create(['name' => 'process payments']);
         Permission::create(['name' => 'update order status']);
+        Permission::create(['name' => 'base price']);
 
         // 2. Buat Role dan berikan Permission
 
@@ -40,5 +41,7 @@ class RolePermissionSeeder extends Seeder
         // Contoh Assignment Permission Spesifik
         Role::findByName('kitchen')->givePermissionTo(['view orders', 'update order status']);
         Role::findByName('cashier')->givePermissionTo(['view orders', 'process payments']);
+        Role::findByName('waitress')->givePermissionTo(['order food', 'view orders']);
+        Role::findByName('admin_cabang')->givePermissionTo(['manage tables', 'manage menu']);
     }
 }

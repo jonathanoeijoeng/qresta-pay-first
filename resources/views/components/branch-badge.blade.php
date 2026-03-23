@@ -1,9 +1,13 @@
-@props(['branch'])
+@props([
+'color',
+'code',
+'name'
+])
 
 @php
-$color = $branch->color ?? '#71717a';
-$code = $branch->code ?? '??';
-$name = $branch->name ?? 'Global';
+$color = $color ?? '#71717a';
+$code = $code ?? '??';
+$name = $name;
 @endphp
 
 <div class="flex items-center gap-2">

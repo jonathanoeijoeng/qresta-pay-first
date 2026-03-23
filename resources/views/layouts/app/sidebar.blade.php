@@ -41,7 +41,15 @@
                                 :current="request()->routeIs('admin.menu-management')" wire:navigate size="sm" {{--
                                 Hover state halus dengan warna accent --}}
                                 class="hover:text-brand hover:bg-brand-light/30">
-                                {{ __('Menu & Categories') }}
+                                {{ __('Menu - Categories') }}
+                            </flux:sidebar.item>
+                        </div>
+                        <div x-show="open" x-collapse x-cloak class="pl-8 mt-1 space-y-1">
+                            <flux:sidebar.item :href="route('admin.branch-menu-management')"
+                                :current="request()->routeIs('admin.branch-menu-management')" wire:navigate size="sm"
+                                {{-- Hover state halus dengan warna accent --}}
+                                class="hover:text-brand hover:bg-brand-light/30">
+                                {{ __('Branch Menu Management') }}
                             </flux:sidebar.item>
                         </div>
                         <div x-show="open" x-collapse x-cloak class="pl-8 mt-1 space-y-1">

@@ -117,16 +117,13 @@ new class extends Component
         return $this->view( [
             'users' => $users,
             'available_roles' => Role::all()
-        ]);
+        ])->title('User Management');
     }
 };
 ?>
 
-<div class="p-6">
-    <div class="flex justify-between items-center mb-6">
-        <flux:heading size="xl">Manajemen Staff</flux:heading>
-        <x-button variant="brand" icon="user-plus">Tambah User</x-button>
-    </div>
+<div>
+    <x-header header="User Management" description="Manajemen user QResta" />
 
     <x-table :collection="$users">
         <x-slot name="headers">

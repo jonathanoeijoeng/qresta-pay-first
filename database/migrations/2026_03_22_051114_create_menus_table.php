@@ -14,13 +14,11 @@ return new class extends Migration
         Schema::create('menus', function (Blueprint $table) {
             $table->id();
             $table->foreignId('category_id')->constrained()->onDelete('cascade');
-            $table->foreignId('branch_id')->constrained()->onDelete('cascade');
             $table->string('name');
             $table->string('slug')->unique();
             $table->text('description')->nullable();
-            $table->decimal('price', 15, 2); // Simpan angka murni, format IDR di View
+            $table->integer('base_price');
             $table->string('image')->nullable(); // Path foto makanan
-            $table->boolean('is_available')->default(true);
             $table->timestamps();
         });
     }

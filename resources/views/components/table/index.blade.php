@@ -14,7 +14,7 @@
 </div>
 {{-- Pagination Area --}}
 @if($collection && $collection->hasPages())
-<div class="px-4 py-3  mt-4">
-    {{ $collection->links() }}
+<div class="px-4 py-3  mt-1">
+    {{ $collection->links('vendor.pagination.simple-tailwind') }}
 </div>
 @endif
