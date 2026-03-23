@@ -162,16 +162,20 @@ new class extends Component {
         description="Manage menu items, adjust pricing per branch, and monitor real-time availability across all locations" />
     {{-- Search --}}
     <div class="block md:flex items-center justify-between mb-4">
-        <div class="block md:flex items-center gap-3">
-            <x-input class="mb-3" name="search" type="text" wire:model.live.debounce.500ms="search"
+        <div class="block md:flex items-center gap-3 mb-3 md:mb-0">
+            <div class="mb-3 md:mb-0">
+            <x-input name="search" type="text" wire:model.live.debounce.500ms="search"
                 placeholder="Search anything..." />
+                </div>
             {{-- Category --}}
-            <x-select class="mb-3" name="branch" wire:model.live="filterBranch">
+            <div class="mb-3 md:mb-0"
+            <x-select name="branch" wire:model.live="filterBranch">
                 <option value="">Semua cabang</option>
                 @foreach($listBranch as $list)
                 <option value="{{ $list->id }}">{{ $list->name }} ({{ $list->code }})</option>
                 @endforeach
             </x-select>
+            </div>
         </div>
         {{-- Reset --}}
         <button wire:click="resetFilters" @disabled($this->activeFiltersCount === 0) class="px-4 py-2 border
