@@ -195,7 +195,7 @@ new class extends Component {
             @endcan
             <x-sort-header field="price" label="Harga" :sortField="$sortField" :sortDirection="$sortDirection"
                 class="text-right" />
-            <x-table.cell>Aksi</x-table.cell>
+            <x-table.cell class="text-center">Aksi</x-table.cell>
         </x-slot>
 
         @forelse($menus as $menu)
