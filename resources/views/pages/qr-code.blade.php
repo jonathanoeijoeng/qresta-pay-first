@@ -31,7 +31,7 @@ new class extends Component
         $table = \App\Models\Table::updateOrCreate(
             [
                 'branch_id' => $this->branch_id,
-                'name' => $this->tableNumber, // Sesuaikan jika kolomnya 'name' atau 'table_number'
+                'number' => $this->tableNumber, // Sesuaikan jika kolomnya 'name' atau 'table_number'
             ],
             [
                 'qr_token' => $token
