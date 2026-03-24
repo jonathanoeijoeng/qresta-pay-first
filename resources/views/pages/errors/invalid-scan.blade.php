@@ -1,4 +1,4 @@
-<x-layouts.app>
+<x-layouts.guest>
     <div class="min-h-screen flex items-center justify-center bg-zinc-50 p-6">
         <div class="max-w-md w-full text-center space-y-6">
             {{-- Icon Peringatan --}}
@@ -23,4 +23,4 @@
             </div>
         </div>
     </div>
-</x-layouts.app>
+</x-layouts.guest>

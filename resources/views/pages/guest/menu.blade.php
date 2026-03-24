@@ -63,10 +63,17 @@ new class extends Component
     {
         return collect($this->cart)->sum(fn($item) => $item['price'] * $item['qty']);
     }
+
+    public function render()
+    {
+        return $this->view()->layout('components.layouts.guest');
+    }
+
+  
 };
 ?>
 
-<div>
+<x-layouts.guest>
     {{-- Main Menu --}}
     <main class="p-4 space-y-4">
         {{-- Search Bar --}}
@@ -122,4 +129,4 @@ new class extends Component
         </flux:button>
     </div>
     @endif
-</div>
+</x-layouts.guest>
