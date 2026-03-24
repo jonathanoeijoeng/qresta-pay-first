@@ -17,9 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
-        ]);
-        $middleware->alias([
-            'check.table.session' => \App\Http\Middleware\CheckTableSession::class,
+            'check.table.session' => \App\Http\Middleware\CheckTableSession::class, // Masukkan ke sini
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

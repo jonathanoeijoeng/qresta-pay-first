@@ -35,25 +35,22 @@ Route::get('/s/{token}', function ($token) {
     $table = \App\Models\Table::where('qr_token', $token)->first();
 
     if (!$table) {
-        dd([
-            'status' => 'Token Tidak Ditemukan di DB',
-            'token_dari_url' => $token,
-            'semua_token_di_db' => \App\Models\Table::pluck('qr_token')->toArray()
-        ]);
         return redirect()->route('invalid-access');
     }
 
     session([
         'customer_table_id' => $table->id,
         'customer_branch_id' => $table->branch_id,
-        'customer_table_name' => $table->name,
+        'customer_table_number' => $table->number,
     ]);
 
+    // Redirect ke halaman menu
     return redirect()->route('menu.display');
 })->name('order.scan');
 
 Route::middleware(['check.table.session'])->group(function () {
-    Route::livewire('/menu', 'pages::guest.menu')->name('menu.display');
+    Route::livewire('/menu', 'pages::guest.menu')->name('guest.menu');
+    Route::livewire('/cart', 'pages::guest.cart')->name('guest.cart');
 });
 
 Route::get('/invalid-scan', function () {

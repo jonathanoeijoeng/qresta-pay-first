@@ -12,7 +12,7 @@
 
 <body class="antialiased bg-white dark:bg-zinc-900">
     {{ $slot }}
-
+    <x-toaster />
     @fluxScripts
 </body>
 

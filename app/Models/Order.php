@@ -4,9 +4,21 @@ namespace App\Models;
 
 use App\Models\OrderItem;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Order extends Model
 {
+    protected $fillable = [
+        'order_number',
+        'table_id',
+        'status',
+        'payment_status',
+        'payment_method',
+        'notes',
+        'branch_id',
+        'total_amount'
+    ];
+
     protected static function booted()
     {
         static::creating(function ($order) {
