@@ -1,5 +1,5 @@
 @props([
-'variant' => 'blue', // Default warna
+'variant' => 'brand', // Default warna
 'type' => 'button',
 'loading' => null, // Target wire:loading
 'icon' => null // Nama komponen icon (opsional)

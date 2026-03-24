@@ -15,11 +15,16 @@
 
         <flux:sidebar.nav>
             <flux:sidebar.group :heading="__('Platform')" class="grid">
+                <flux:sidebar.item icon="qr-code" :href="route('qr-code')" :current="request()->routeIs('qr-code')"
+                    wire:navigate>
+                    {{ __('QR Code') }}
+                </flux:sidebar.item>
                 <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')"
                     wire:navigate>
                     {{ __('Dashboard') }}
                 </flux:sidebar.item>
 
+                @can('change menu')
                 <flux:navlist>
                     {{-- Admin Section --}}
                     <div x-data="{ open: @js(request()->routeIs('admin.*')) }">
@@ -36,6 +41,7 @@
                             </div>
                         </flux:sidebar.item>
 
+                        @can('change central')
                         <div x-show="open" x-collapse x-cloak class="pl-8 mt-1 space-y-1">
                             <flux:sidebar.item :href="route('admin.menu-management')"
                                 :current="request()->routeIs('admin.menu-management')" wire:navigate size="sm" {{--
@@ -44,6 +50,8 @@
                                 {{ __('Menu - Categories') }}
                             </flux:sidebar.item>
                         </div>
+                        @endcan
+                        @can('change branch')
                         <div x-show="open" x-collapse x-cloak class="pl-8 mt-1 space-y-1">
                             <flux:sidebar.item :href="route('admin.branch-menu-management')"
                                 :current="request()->routeIs('admin.branch-menu-management')" wire:navigate size="sm"
@@ -52,6 +60,8 @@
                                 {{ __('Branch Menu') }}
                             </flux:sidebar.item>
                         </div>
+                        @endcan
+                        @can('change central')
                         <div x-show="open" x-collapse x-cloak class="pl-8 mt-1 space-y-1">
                             <flux:sidebar.item :href="route('admin.user-management')"
                                 :current="request()->routeIs('admin.user-management')" wire:navigate size="sm" {{--
@@ -60,8 +70,18 @@
                                 {{ __('Users') }}
                             </flux:sidebar.item>
                         </div>
+                        <div x-show="open" x-collapse x-cloak class="pl-8 mt-1 space-y-1">
+                            <flux:sidebar.item :href="route('admin.role-permission')"
+                                :current="request()->routeIs('admin.role-permission')" wire:navigate size="sm" {{--
+                                Hover state halus dengan warna accent --}}
+                                class="hover:text-brand hover:bg-brand-light/30">
+                                {{ __('Role - Permission') }}
+                            </flux:sidebar.item>
+                        </div>
+                        @endcan
                     </div>
                 </flux:navlist>
+                @endcan
             </flux:sidebar.group>
         </flux:sidebar.nav>
 

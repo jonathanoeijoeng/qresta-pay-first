@@ -125,40 +125,42 @@ new class extends Component
 <div>
     <x-header header="User Management" description="Manajemen user QResta" />
 
-    <x-table :collection="$users">
-        <x-slot name="headers">
-            <x-sort-header field="name" label="Nama" showOnMobile="true" :sortField="$sortField"
-                :sortDirection="$sortDirection" />
-            <x-sort-header field="email" label="Email" showOnMobile="true" :sortField="$sortField"
-                :sortDirection="$sortDirection" />
-            <x-sort-header field="role_name" label="Role" showOnMobile="true" :sortField="$sortField"
-                :sortDirection="$sortDirection" />
-            <x-table.cell showOnMobile="true">Action</x-table.cell>
-        </x-slot>
-        @forelse($users as $user)
-        <x-table.row>
-            <x-table.cell showOnMobile="true">{{ $user->name }}</x-table.cell>
-            <x-table.cell showOnMobile="true">{{ $user->email }}</x-table.cell>
-            <x-table.cell showOnMobile="true">
-                <x-badge color="{{ $user->hasRole('admin') ? 'purple' : 'blue' }}">
-                    {{ $user->getRoleNames()->first() }}
-                </x-badge>
-            </x-table.cell>
-            <x-table.cell showOnMobile="true">
-                <div class="flex justify-between items-center">
-                    <x-edit x-on:click="$flux.modal('edit-user').show()" wire:click="edit({{ $user->id }})" />
-                    <x-delete :user="$user" />
-                </div>
-            </x-table.cell>
-        </x-table.row>
-        @empty
-        <x-table.row>
-            <x-table.cell showOnMobile="true" colspan="4" class="text-center">
-                Tidak ada data staff.
-            </x-table.cell>
-        </x-table.row>
-        @endforelse
-    </x-table>
+    <div class="max-w-4xl">
+        <x-table :collection="$users">
+            <x-slot name="headers">
+                <x-sort-header field="name" label="Nama" showOnMobile="true" :sortField="$sortField"
+                    :sortDirection="$sortDirection" />
+                <x-sort-header field="email" label="Email" showOnMobile="true" :sortField="$sortField"
+                    :sortDirection="$sortDirection" />
+                <x-sort-header field="role_name" label="Role" showOnMobile="true" :sortField="$sortField"
+                    :sortDirection="$sortDirection" />
+                <x-table.cell showOnMobile="true">Action</x-table.cell>
+            </x-slot>
+            @forelse($users as $user)
+            <x-table.row>
+                <x-table.cell showOnMobile="true">{{ $user->name }}</x-table.cell>
+                <x-table.cell showOnMobile="true">{{ $user->email }}</x-table.cell>
+                <x-table.cell showOnMobile="true">
+                    <x-badge color="{{ $user->hasRole('admin') ? 'purple' : 'blue' }}">
+                        {{ $user->getRoleNames()->first() }}
+                    </x-badge>
+                </x-table.cell>
+                <x-table.cell showOnMobile="true">
+                    <div class="flex gap-3 items-center">
+                        <x-edit x-on:click="$flux.modal('edit-user').show()" wire:click="edit({{ $user->id }})" />
+                        <x-delete :user="$user" />
+                    </div>
+                </x-table.cell>
+            </x-table.row>
+            @empty
+            <x-table.row>
+                <x-table.cell showOnMobile="true" colspan="4" class="text-center">
+                    <x-nodatafound />
+                </x-table.cell>
+            </x-table.row>
+            @endforelse
+        </x-table>
+    </div>
 
     <flux:modal name="edit-user" class="min-w-[400px]">
         <form wire:submit="update" class="space-y-6">
