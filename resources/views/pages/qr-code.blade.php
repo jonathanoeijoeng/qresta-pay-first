@@ -27,7 +27,7 @@ new class extends Component
         $baseUrl = config('app.url');
         $token = Str::random(16);
         
-        $url = $baseUrl . '/qr-code?branch_id=' . $this->branch_id . '&tableNumber=' . $this->tableNumber . '&token=' . $token;
+        $url = $baseUrl . '/s/' . $token;
 
         // 2. Generate QR Code using BaconQrCode
         $renderer = new ImageRenderer(
