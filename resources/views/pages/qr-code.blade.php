@@ -83,9 +83,7 @@ new class extends Component
                     <p class="font-bold text-zinc-700">QResta</p>
                     <p class="text-sm text-zinc-700">{{ $branchName }}</p>
                     <p class="text-sm text-zinc-700">Table: {{ $tableNumber }}</p>
-                    <div class="flex gap-2 mt-4">
-                        <flux:button icon="printer" size="sm" onclick="window.print()">Print</flux:button>
-                    </div>
+                   
                     @else
                     <div class="text-center text-zinc-400">
                         <flux:icon.qr-code class="w-12 h-12 mx-auto mb-2 opacity-20" />
@@ -94,6 +92,9 @@ new class extends Component
                     @endif
                 </div>
             </div>
+             <div class="flex gap-2 mt-4">
+                        <flux:button icon="printer" size="sm" onclick="window.print()">Print</flux:button>
+                    </div>
         </div>
     </div>
 </div>
