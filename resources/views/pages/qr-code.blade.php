@@ -92,7 +92,7 @@ new class extends Component
                     @endif
                 </div>
             </div>
-             <div class="flex gap-2 mt-4">
+             <div class="flex gap-2 mt-4 no-print">
                         <flux:button icon="printer" size="sm" onclick="window.print()">Print</flux:button>
                     </div>
         </div>
