@@ -31,13 +31,13 @@ Route::middleware(['auth', 'role:super_admin|admin_cabang'])->group(function () 
 // --- ROUTE TAMU (Non-Auth / Publik) ---
 // 1. Jalur masuk dari Scan QR
 Route::get('/s/{token}', function ($token) {
-    $table = Table::where('access_token', $token)->first();
+    // Cari berdasarkan qr_token
+    $table = \App\Models\Table::where('qr_token', $token)->first();
 
     if (!$table) {
         return redirect()->route('invalid-access');
     }
 
-    // Set Session di sini
     session([
         'customer_table_id' => $table->id,
         'customer_branch_id' => $table->branch_id,

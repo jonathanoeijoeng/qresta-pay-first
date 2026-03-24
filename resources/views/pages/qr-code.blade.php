@@ -23,20 +23,35 @@ new class extends Component
             'tableNumber' => 'required|string|max:10',
         ]);
 
-        // 1. Generate URL from ENV or config
-        $baseUrl = config('app.url');
         $token = Str::random(16);
         
-        $url = $baseUrl . '/s/' . $token;
+        // 1. SIMPAN/UPDATE KE DATABASE
+        // Kita cari meja berdasarkan nomor dan cabang, jika ada kita update tokennya,
+        // jika belum ada, kita buat data baru.
+        $table = \App\Models\Table::updateOrCreate(
+            [
+                'branch_id' => $this->branch_id,
+                'name' => $this->tableNumber, // Sesuaikan jika kolomnya 'name' atau 'table_number'
+            ],
+            [
+                'qr_token' => $token
+            ]
+        );
 
-        // 2. Generate QR Code using BaconQrCode
+        // 2. GENERATE URL (Gunakan fungsi route agar lebih aman)
+        $url = route('order.scan', ['token' => $token]);
+
+        // 3. GENERATE QR CODE
         $renderer = new ImageRenderer(
             new RendererStyle(400),
             new SvgImageBackEnd()
         );
         $writer = new Writer($renderer);
+        
         $this->qrCodeRawSvg = $writer->writeString($url);
         $this->branchName = Branch::find($this->branch_id)->name;
+
+        $this->dispatch('toast', type: 'success', text: 'QR Code berhasil disimpan ke database!');
     }
 
     public function render()
