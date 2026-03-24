@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Table;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
@@ -27,4 +28,31 @@ Route::middleware(['auth', 'role:super_admin|admin_cabang'])->group(function () 
     Route::livewire('/admin/role-permission', 'pages::admin.role-permission')->name('admin.role-permission');
 });
 
-require __DIR__.'/settings.php';
+// --- ROUTE TAMU (Non-Auth / Publik) ---
+// 1. Jalur masuk dari Scan QR
+Route::get('/s/{token}', function ($token) {
+    $table = Table::where('access_token', $token)->first();
+
+    if (!$table) {
+        return redirect()->route('invalid-access');
+    }
+
+    // Set Session di sini
+    session([
+        'customer_table_id' => $table->id,
+        'customer_branch_id' => $table->branch_id,
+        'customer_table_name' => $table->name,
+    ]);
+
+    return redirect()->route('menu.display');
+})->name('order.scan');
+
+Route::middleware(['check.table.session'])->group(function () {
+    Route::livewire('/menu', 'pages::guest.menu')->name('menu.display');
+});
+
+Route::get('/invalid-scan', function () {
+    return view('pages.errors.invalid-scan');
+})->name('invalid-access');
+
+require __DIR__ . '/settings.php';
