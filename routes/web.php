@@ -32,6 +32,7 @@ Route::middleware(['auth', 'role:super_admin|admin_cabang'])->group(function () 
 // 1. Jalur masuk dari Scan QR
 Route::get('/s/{token}', function ($token) {
     // Cari berdasarkan qr_token
+    dd($this->all());
     $table = \App\Models\Table::where('qr_token', $token)->first();
 
     if (!$table) {

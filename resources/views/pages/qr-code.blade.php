@@ -14,16 +14,18 @@ new class extends Component
     public $branchName;
     public $tableNumber;
     public $branch_id;
+    public $token;
 
 
     public function generate()
     {
+        // dd($this->all());
         $this->validate([
             'branch_id' => 'required|exists:branches,id',
             'tableNumber' => 'required|string|max:10',
         ]);
 
-        $token = Str::random(16);
+        $this->token = Str::random(16);
         
         // 1. SIMPAN/UPDATE KE DATABASE
         // Kita cari meja berdasarkan nomor dan cabang, jika ada kita update tokennya,
@@ -34,12 +36,12 @@ new class extends Component
                 'number' => $this->tableNumber, // Sesuaikan jika kolomnya 'name' atau 'table_number'
             ],
             [
-                'qr_token' => $token
+                'qr_token' => $this->token
             ]
         );
 
         // 2. GENERATE URL (Gunakan fungsi route agar lebih aman)
-        $url = route('order.scan', ['token' => $token]);
+        $url = route('order.scan', ['token' => $this->token]);
 
         // 3. GENERATE QR CODE
         $renderer = new ImageRenderer(
@@ -94,7 +96,7 @@ new class extends Component
                     </div>
                     <p class="font-bold text-zinc-700">QResta {{ $branchName }}</p>
                     <p class="text-sm text-zinc-700">Table: {{ $tableNumber }}</p>
-
+                    <p class="text-sm text-zinc-700">Token: {{ $token }}</p>
                     @else
                     <div class="text-center text-zinc-400">
                         <flux:icon.qr-code class="w-12 h-12 mx-auto mb-2 opacity-20" />
