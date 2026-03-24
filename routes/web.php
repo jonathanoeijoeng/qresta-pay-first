@@ -32,10 +32,14 @@ Route::middleware(['auth', 'role:super_admin|admin_cabang'])->group(function () 
 // 1. Jalur masuk dari Scan QR
 Route::get('/s/{token}', function ($token) {
     // Cari berdasarkan qr_token
-    dd($this->all());
     $table = \App\Models\Table::where('qr_token', $token)->first();
 
     if (!$table) {
+        dd([
+            'status' => 'Token Tidak Ditemukan di DB',
+            'token_dari_url' => $token,
+            'semua_token_di_db' => \App\Models\Table::pluck('qr_token')->toArray()
+        ]);
         return redirect()->route('invalid-access');
     }
 
