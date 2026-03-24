@@ -45,7 +45,7 @@ Route::get('/s/{token}', function ($token) {
     ]);
 
     // Redirect ke halaman menu
-    return redirect()->route('menu.display');
+    return redirect()->route('guest.menu');
 })->name('order.scan');
 
 Route::middleware(['check.table.session'])->group(function () {

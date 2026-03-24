@@ -96,7 +96,7 @@ new class extends Component
                     </div>
                     <p class="font-bold text-zinc-700">QResta {{ $branchName }}</p>
                     <p class="text-sm text-zinc-700">Table: {{ $tableNumber }}</p>
-                    <p class="text-sm text-zinc-700">Token: {{ $token }}</p>
+                    {{-- <p class="text-sm text-zinc-700">Token: {{ $token }}</p> --}}
                     @else
                     <div class="text-center text-zinc-400">
                         <flux:icon.qr-code class="w-12 h-12 mx-auto mb-2 opacity-20" />
