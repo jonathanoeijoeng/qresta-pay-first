@@ -12,8 +12,9 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         // Ambil ID cabang yang baru dibuat
-        $sudirman = Branch::where('name', 'Resto Cabang Sudirman')->first();
-        $menteng = Branch::where('name', 'Resto Cabang Menteng')->first();
+        $sudirman = Branch::where('name', 'Sudirman')->first();
+        $menteng = Branch::where('name', 'Menteng')->first();
+        $senopati = Branch::where('name', 'Senopati')->first();
 
         // 1. SUPER ADMIN (Pusat - Tidak terikat cabang)
         User::create([

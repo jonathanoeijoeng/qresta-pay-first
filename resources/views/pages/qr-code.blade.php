@@ -50,7 +50,7 @@ new class extends Component
 
 <div>
     <x-header header="QR Code" description="Generate QR Code" />
-    <div class="p-6 bg-white rounded-xl shadow-sm border border-zinc-200">
+    <div class="p-6 bg-white rounded-xl border border-zinc-200">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             {{-- Sisi Kiri: Form Input --}}
             <div class="space-y-4">
@@ -74,16 +74,12 @@ new class extends Component
                 <div
                     class="flex flex-col items-center justify-center border-2 border-dashed border-zinc-100 rounded-xl p-4">
                     @if($qrCodeRawSvg)
-                    <div>
-                        <img src="{{ asset('/logo.svg') }}" alt="QR Code" class="w-24 h-24 mx-auto opacity-50">
-                    </div>
-                    <div class="bg-white p-4 rounded-lg shadow-md mb-4">
+                    <div class="bg-white p-4 rounded-lg mb-4">
                         {!! $qrCodeRawSvg !!}
                     </div>
-                    <p class="font-bold text-zinc-700">QResta</p>
-                    <p class="text-sm text-zinc-700">{{ $branchName }}</p>
+                    <p class="font-bold text-zinc-700">QResta {{ $branchName }}</p>
                     <p class="text-sm text-zinc-700">Table: {{ $tableNumber }}</p>
-                   
+
                     @else
                     <div class="text-center text-zinc-400">
                         <flux:icon.qr-code class="w-12 h-12 mx-auto mb-2 opacity-20" />
@@ -92,9 +88,9 @@ new class extends Component
                     @endif
                 </div>
             </div>
-             <div class="flex gap-2 mt-4 no-print">
-                        <flux:button icon="printer" size="sm" onclick="window.print()">Print</flux:button>
-                    </div>
+            <div class="flex gap-2 mt-4 no-print">
+                <flux:button icon="printer" size="sm" onclick="window.print()">Print</flux:button>
+            </div>
         </div>
     </div>
 </div>
