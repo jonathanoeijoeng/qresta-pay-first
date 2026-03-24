@@ -13,9 +13,9 @@ class Table extends Model
     {
         parent::boot();
         // Otomatis buat token unik saat meja di-input
-        static::creating(function ($table) {
-            $table->qr_token = Str::random(32);
-        });
+        // static::creating(function ($table) {
+        //     $table->qr_token = Str::random(32);
+        // });
     }
 
     public function branch()

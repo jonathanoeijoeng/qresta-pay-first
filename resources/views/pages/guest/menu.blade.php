@@ -23,10 +23,9 @@ new class extends Component
 
     public function loadMenus()
     {
-        $this->menus = Menu::where('branch_id', session('customer_branch_id'))
-            ->where('is_available', true)
-            ->when($this->search, fn($q) => $q->where('name', 'like', "%{$this->search}%"))
-            ->get();
+        $branchId = session('customer_branch_id');
+        $branch = \App\Models\Branch::find($branchId);
+        $this->menus = $branch->menus()->wherePivot('is_available', true)->get();
     }
 
     public function removeFromCart($menuId)
