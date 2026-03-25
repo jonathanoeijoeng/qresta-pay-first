@@ -51,11 +51,6 @@ new class extends Component
         $this->qrCodeSvg = $writer->writeString($this->order->order_number);
     }  
 
-    // Fungsi ini akan dipanggil otomatis oleh Livewire polling
-    public function refreshStatus()
-    {
-        $this->order->refresh();
-    }
 
     #[Layout('components.layouts.guest')]
     public function render()

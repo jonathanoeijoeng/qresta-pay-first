@@ -28,6 +28,12 @@ Route::middleware(['auth', 'role:super_admin|admin_cabang'])->group(function () 
     Route::livewire('/admin/role-permission', 'pages::admin.role-permission')->name('admin.role-permission');
 });
 
+Route::middleware(['auth', 'role:super_admin|admin_cabang|kitchen'])->group(function () {
+    Route::prefix('kitchen')->name('kitchen.')->group(function () {
+        Route::livewire('/', 'pages::kitchen.index')->name('kitchen.index');
+    });
+});
+
 // --- ROUTE TAMU (Non-Auth / Publik) ---
 // 1. Jalur masuk dari Scan QR
 Route::get('/s/{token}', function ($token) {
