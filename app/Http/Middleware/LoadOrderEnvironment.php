@@ -16,7 +16,7 @@ class LoadOrderEnvironment
         // (Pastikan key session-nya sama dengan yang Anda pakai sebelumnya)
         if (!Session::has('customer_table_id')) {
             // Jika tidak ada session, tendang balik ke halaman scan atau home
-            return redirect()->route('scan.error')->with('error', 'Silakan scan QR Code meja kembali.');
+            return redirect()->route('invalid-access')->with('error', 'Silakan scan QR Code meja kembali.');
         }
 
         // 2. CONFIGURATION: Jika session aman, baru muat semua settingannya

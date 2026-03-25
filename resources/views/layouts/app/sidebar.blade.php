@@ -32,7 +32,7 @@
                 <flux:navlist>
                     {{-- Admin Section --}}
                     <div x-data="{ open: @js(request()->routeIs('admin.*')) }">
-                        <flux:sidebar.item icon="shield-check" x-on:click.prevent="open = !open"
+                        <flux:sidebar.item icon="cog" x-on:click.prevent="open = !open"
                             class="cursor-pointer flex justify-between items-center group" {{-- Warna teks saat aktif
                             menggunakan Primary Orange --}}
                             :class="request()->routeIs('admin.*') ? 'text-brand font-bold bg-brand-light/50' : 'text-slate-600'">
@@ -80,6 +80,14 @@
                                 Hover state halus dengan warna accent --}}
                                 class="hover:text-brand hover:bg-brand-light/30">
                                 {{ __('Role - Permission') }}
+                            </flux:sidebar.item>
+                        </div>
+                        <div x-show="open" x-collapse x-cloak class="pl-8 mt-1 space-y-1">
+                            <flux:sidebar.item :href="route('admin.global-settings')"
+                                :current="request()->routeIs('admin.global-settings')" wire:navigate size="sm" {{--
+                                Hover state halus dengan warna accent --}}
+                                class="hover:text-brand hover:bg-brand-light/30">
+                                {{ __('Global Settings') }}
                             </flux:sidebar.item>
                         </div>
                         @endcan

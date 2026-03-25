@@ -60,7 +60,7 @@ new class extends Component
     public function refreshCartSummary(): void
     {
         $order = \App\Models\Order::where('table_id', session('customer_table_id'))
-            ->where('status', 'pending')
+            ->where('status', 'draft')
             ->where('payment_status', 'unpaid')
             ->first();
 
@@ -104,12 +104,13 @@ new class extends Component
             [
                 'branch_id' => $branchId,
                 'table_id' => $tableId,
-                'status' => 'pending',
+                'status' => 'draft',
                 'payment_status' => 'unpaid'
             ],
             [
                 'order_number' => $orderNumber,
-                'total_amount' => 0
+                'total_amount' => 0,
+                'tax_amount' => 0
             ]
         );
 

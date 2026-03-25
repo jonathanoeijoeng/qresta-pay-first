@@ -26,6 +26,7 @@ Route::middleware(['auth', 'role:super_admin|admin_cabang'])->group(function () 
     Route::livewire('/admin/branch-menu-management', 'pages::admin.branch-menu-management')->name('admin.branch-menu-management');
     Route::livewire('/admin/user-management', 'pages::admin.user-management')->name('admin.user-management');
     Route::livewire('/admin/role-permission', 'pages::admin.role-permission')->name('admin.role-permission');
+    Route::livewire('/admin/global-settings', 'pages::admin.global-settings')->name('admin.global-settings');
 });
 
 Route::middleware(['auth', 'role:super_admin|admin_cabang|kitchen'])->group(function () {

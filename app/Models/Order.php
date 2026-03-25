@@ -16,7 +16,8 @@ class Order extends Model
         'payment_method',
         'notes',
         'branch_id',
-        'total_amount'
+        'total_amount',
+        'tax_amount',
     ];
 
     protected static function booted()

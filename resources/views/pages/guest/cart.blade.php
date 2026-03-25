@@ -4,10 +4,14 @@ namespace App\Livewire\Pages;
 
 use Livewire\Component;
 use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\Menu;
+use App\Models\GlobalSetting;
 use App\Events\OrderUpdated;
 use App\Events\OrderSent;
 use Livewire\Attributes\Computed;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 new class extends Component
 {
@@ -74,9 +78,20 @@ new class extends Component
     }
 
     #[Computed]
+    public function taxPercentage()
+    {
+        // Gunakan Cache agar Intel NUC tidak kerja keras query DB tiap detik
+        return Cache::remember('settings_tax_percentage', 3600, function () {
+            $value = GlobalSetting::where('key', 'tax_percentage')->value('value');
+            
+            // Kembalikan sebagai integer, default 10 jika kosong
+            return $value !== null ? (int) $value : 10;
+        });
+    }
+    
+    #[Computed]
     public function cartItems()
     {
-        // Mengambil items dari order yang ada di session
         return $this->order ? $this->order->items : collect();
     }
 
@@ -90,11 +105,8 @@ new class extends Component
     #[Computed]
     public function taxAmount()
     {
-        // Ambil persentase dari config (hasil suntikan middleware)
-        $percentage = config('app.tax_percentage', 10); 
-        
-        return $this->subtotal * ($percentage / 100);
-    }
+        $taxPercentage = GlobalSetting::where('key', 'tax_percentage')->value('value') ?? 10;         
+        return $this->subtotal * ($this->taxPercentage / 100);    }
 
     #[Computed]
     public function grandTotal()
@@ -106,7 +118,7 @@ new class extends Component
     public function order()
     {
         $order = Order::where('table_id', session('customer_table_id'))
-            ->where('status', 'pending')
+            ->where('status', 'draft')
             ->first();
 
         if ($order) {
@@ -126,7 +138,7 @@ new class extends Component
     {
         return Order::with('items.menu')
             ->where('table_id', session('customer_table_id'))
-            ->where('status', 'pending')
+            ->where('status', 'draft')
             ->first();
     }
 
@@ -165,16 +177,11 @@ new class extends Component
             return $this->dispatch('notify', ['type' => 'error', 'message' => 'Keranjang masih kosong!']);
         }
 
-        // 2. Finalisasi Perhitungan (Subtotal + PB1 10%)
-        $subtotal = $this->subtotal;
-        $tax = $subtotal * 0.1;
-        $total = $subtotal + $tax;
-
         // 3. Update Status Order di Database
         $this->order->update([
             'status' => 'pending', // Pesanan masuk ke dapur
-            'total_amount' => $total,
-            'tax_amount' => $tax,
+            'total_amount' => $this->grandTotal,
+            'tax_amount' => $this->taxAmount,
             'confirmed_at' => now(), // Tambahkan kolom ini di migrasi jika perlu
         ]);
 
@@ -193,7 +200,7 @@ new class extends Component
     {
         // 1. Ambil Order Utama
         $order = \App\Models\Order::where('table_id', session('customer_table_id'))
-            ->where('status', 'pending')
+            ->where('status', 'draft')
             ->first();
 
         $items = collect(); // Default kosong jika tidak ada order
@@ -288,7 +295,7 @@ new class extends Component
                         ',') }}</span>
                 </div>
                 <div class="flex justify-between items-center text-sm">
-                    <span class="text-zinc-500">PB1 (10%)</span>
+                    <span class="text-zinc-500">PB1 {{ $this->taxPercentage }}%</span>
                     <span class="text-zinc-900 font-medium">IDR {{ number_format($this->taxAmount, 0, '.', ',')
                         }}</span>
                 </div>

@@ -3,6 +3,7 @@
 namespace App\Livewire\Kitchen;
 
 use App\Models\Order;
+use App\Models\GlobalSetting;
 use App\Events\OrderUpdated; 
 use App\Events\OrderSent; 
 use Livewire\Component;
@@ -31,8 +32,8 @@ new class extends Component
                             ->oldest()
                             ->get();
 
-        // $warningMinutes = Setting::where('key', 'kitchen_warning_time')->value('value') ?? 15;
-        $warningMinutes = 15;
+        $warningMinutes = GlobalSetting::where('key', 'kitchen_warning_time')->value('value') ?? 15;
+        // $warningMinutes = 15;
 
         return $this->view([
             'orders' => $orders,

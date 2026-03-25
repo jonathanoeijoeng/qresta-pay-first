@@ -20,13 +20,14 @@ return new class extends Migration
             $table->string('order_number')->unique();
 
             // Status alur kerja restoran
-            $table->enum('status', ['pending', 'processing', 'completed', 'cancelled'])->default('pending');
+            $table->enum('status', ['draft', 'pending', 'processing', 'completed', 'cancelled'])->default('pending');
 
             // Status pembayaran
             $table->enum('payment_status', ['unpaid', 'paid'])->default('unpaid');
             $table->string('payment_method')->nullable(); // Cash, QRIS, etc.
 
-            $table->integer('total_amount'); // Gunakan integer (IDR) tanpa koma di DB
+            $table->bigInteger('total_amount'); // Gunakan integer (IDR) tanpa koma di DB
+            $table->bigInteger('tax_amount'); // Gunakan integer (IDR) tanpa koma di DB
             $table->text('notes')->nullable(); // Catatan tambahan dari tamu (e.g. "Tanpa bawang")
 
             $table->timestamps();

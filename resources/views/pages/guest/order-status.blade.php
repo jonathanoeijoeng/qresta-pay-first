@@ -122,6 +122,14 @@ new class extends Component
             </div>
             @endforeach
         </div>
+        <div class="flex justify-between">
+            <span>Sub Total</span>
+            <span class="text-orange-400">IDR {{ number_format($order->items->sum('subtotal'), 0, ',', ',') }}</span>
+        </div>
+        <div class="flex justify-between">
+            <span>PB 1</span>
+            <span class="text-orange-400">IDR {{ number_format($order->tax_amount, 0, ',', ',') }}</span>
+        </div>
         <div class="flex justify-between font-bold text-lg">
             <span>Total Bayar</span>
             <span class="text-orange-400">IDR {{ number_format($order->total_amount, 0, ',', ',') }}</span>
