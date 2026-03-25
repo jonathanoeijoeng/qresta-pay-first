@@ -61,11 +61,11 @@ new class extends Component
 
 <div class="max-w-md mx-auto min-h-screen bg-zinc-50 p-6 dark:bg-zinc-800">
     <div class="text-center mb-4">
-        <div class="inline-flex items-center justify-center w-20 h-20 bg-orange-100 rounded-full mb-4">
+        <div class="inline-flex items-center justify-center w-20 h-20 bg-brand-100 rounded-full mb-4">
             @if($order->status == 'pending')
-            <div class="animate-bounce text-orange-600 text-3xl">⏳</div>
+            <div class="animate-bounce text-brand-600 text-3xl">⏳</div>
             @elseif($order->status == 'processing')
-            <div class="animate-spin text-orange-600 text-3xl">🍳</div>
+            <div class="animate-spin text-brand-600 text-3xl">🍳</div>
             @else
             <div class="text-green-600 text-3xl">✅</div>
             @endif
@@ -96,15 +96,15 @@ new class extends Component
             <div class="flex gap-4">
                 <div class="flex flex-col items-center">
                     <div
-                        class="w-6 h-6 rounded-full {{ $order->status == $step['id'] ? 'bg-orange-600 ring-4 ring-orange-100' : ($currentReached ? 'bg-orange-600' : 'bg-zinc-200') }}">
+                        class="w-6 h-6 rounded-full {{ $order->status == $step['id'] ? 'bg-brand-600 ring-4 ring-brand-100' : ($currentReached ? 'bg-brand-600' : 'bg-zinc-200') }}">
                     </div>
                     @if(!$loop->last) <div
-                        class="w-0.5 h-10 {{ $currentReached && $order->status != $step['id'] ? 'bg-orange-600' : 'bg-zinc-200' }}">
+                        class="w-0.5 h-10 {{ $currentReached && $order->status != $step['id'] ? 'bg-brand-600' : 'bg-zinc-200' }}">
                     </div> @endif
                 </div>
                 <div>
                     <h3
-                        class="font-bold text-sm {{ $order->status == $step['id'] ? 'text-orange-600' : 'text-zinc-800' }}">
+                        class="font-bold text-sm {{ $order->status == $step['id'] ? 'text-brand-600' : 'text-zinc-800' }}">
                         {{ $step['label'] }}</h3>
                     <p class="text-xs text-zinc-500">{{ $step['desc'] }}</p>
                 </div>
@@ -115,7 +115,7 @@ new class extends Component
     </div>
 
     <div class="bg-zinc-600 text-zinc-50 rounded-3xl p-6 shadow-xl">
-        <h4 class="text-xs uppercase tracking-widest opacity-50 mb-4">Ringkasan Pesanan</h4>
+        <h4 class="text-xs uppercase tracking-widest font-bold text-zinc-100 mb-4">Ringkasan Pesanan</h4>
         <div class="space-y-3 mb-4 border-b border-white/10 pb-4">
             @foreach($order->items as $item)
             <div class="flex justify-between text-sm">
@@ -126,15 +126,16 @@ new class extends Component
         </div>
         <div class="flex justify-between">
             <span>Sub Total</span>
-            <span class="text-orange-400">IDR {{ number_format($order->items->sum('subtotal'), 0, ',', ',') }}</span>
+            <span class="text-brand-600 font-semibold">IDR {{ number_format($order->items->sum('subtotal'), 0, ',', ',')
+                }}</span>
         </div>
         <div class="flex justify-between">
             <span>PB 1</span>
-            <span class="text-orange-400">IDR {{ number_format($order->tax_amount, 0, ',', ',') }}</span>
+            <span class="text-brand-600 font-semibold">IDR {{ number_format($order->tax_amount, 0, ',', ',') }}</span>
         </div>
         <div class="flex justify-between font-bold text-lg">
             <span>Total Bayar</span>
-            <span class="text-orange-400">IDR {{ number_format($order->total_amount, 0, ',', ',') }}</span>
+            <span class="text-brand-600">IDR {{ number_format($order->total_amount, 0, ',', ',') }}</span>
         </div>
         <p class="text-[10px] opacity-50 mt-4 text-center italic">Silahkan tunjukkan halaman ini ke kasir saat melakukan
             pembayaran.</p>
@@ -142,6 +143,6 @@ new class extends Component
 
     <div class="mt-8 text-center">
         <a href="{{ route('guest.menu') }}"
-            class="text-orange-600 font-bold text-sm border-b-2 border-orange-600 pb-1">Pesan Lagi?</a>
+            class="text-brand-600 font-bold text-sm border-b-2 border-brand-600 pb-1">Pesan Lagi?</a>
     </div>
 </div>
