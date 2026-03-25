@@ -225,25 +225,26 @@ new class extends Component
 ?>
 
 <div>
-    <div class="min-h-screen bg-zinc-50">
-        <header class="bg-white p-4 border-b border-zinc-100 sticky top-0 z-10 flex items-center gap-4">
-            <a href="{{ route('guest.menu') }}" class="p-2 bg-zinc-50 rounded-full">
+    <div class="min-h-screen bg-zinc-50 dark:bg-zinc-800">
+        <header
+            class="bg-white dark:bg-zinc-700 p-4 border-b border-zinc-100 dark:border-zinc-600 sticky top-0 z-10 flex items-center gap-4">
+            <a href="{{ route('guest.menu') }}" class="p-2 bg-brand-600 rounded-full">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
                     stroke="currentColor" class="w-5 h-5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
                 </svg>
             </a>
-            <h1 class="text-lg font-bold">Review Pesanan</h1>
+            <h1 class="text-lg text-zinc-800 dark:text-zinc-50 font-bold">Review Pesanan</h1>
         </header>
 
         <main class="p-4 space-y-3 pb-32">
             @if($items->count() > 0)
             @foreach($items as $item)
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-zinc-100 mb-3"
+            <div class="bg-white dark:bg-zinc-600 p-4 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc500 mb-3"
                 wire:key="item-row-{{ $item->id }}">
                 <div class="flex items-start gap-4">
                     <div class="flex-1">
-                        <h3 class="font-bold text-zinc-900 leading-tight">{{ $item->menu->name }}</h3>
+                        <h3 class="font-bold text-zinc-900 dark:text-zinc-50 leading-tight">{{ $item->menu->name }}</h3>
 
                         @if($item->notes)
                         <button wire:click="editNote({{ $item->id }})" class="flex items-start gap-1.5 mt-1 group">
@@ -257,20 +258,24 @@ new class extends Component
                             </span>
                         </button>
                         @else
-                        <button wire:click="editNote({{ $item->id }})" class="text-[10px] text-zinc-400 font-bold mt-2">
+                        <button wire:click="editNote({{ $item->id }})"
+                            class="text-[10px] text-zinc-700 dark:text-zinc-100 font-bold mt-2">
                             + tambah catatan
                         </button>
                         @endif
 
-                        <p class="text-orange-500 font-bold text-sm mt-2">
+                        <p class="text-brand-500 dark:text-brand-600 font-bold text-sm mt-2">
                             IDR {{ number_format($item->price_at_order, 0, '.', ',') }}
                         </p>
                     </div>
 
-                    <div class="flex items-center gap-3 bg-zinc-100 px-3 py-1.5 rounded-full shadow-inner">
-                        <button wire:click="updateQty({{ $item->id }}, -1)" class="text-zinc-500 font-black">-</button>
+                    <div
+                        class="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-500 px-3 py-1.5 rounded-full shadow-inner">
+                        <button wire:click="updateQty({{ $item->id }}, -1)"
+                            class="text-zinc-700 dark:text-zinc-100 font-black">-</button>
                         <span class="text-xs font-bold w-4 text-center">{{ $item->quantity }}</span>
-                        <button wire:click="updateQty({{ $item->id }}, 1)" class="text-zinc-500 font-black">+</button>
+                        <button wire:click="updateQty({{ $item->id }}, 1)"
+                            class="text-zinc-700 dark:text-zinc-100 font-black">+</button>
                     </div>
                 </div>
             </div>
@@ -286,30 +291,32 @@ new class extends Component
 
         @if($this->order && $this->order->items->count() > 0)
         <div
-            class="fixed bottom-6 left-0 right-0 bg-white p-6 border-t border-zinc-100 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-50 transition-all duration-300 ease-in-out">
+            class="fixed bottom-6 left-0 right-0 bg-white dark:bg-zinc-700 p-6 border-t border-zinc-100 dark:border-zinc-600 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-50 transition-all duration-300 ease-in-out">
 
-            <div class="space-y-2 mb-2 border-b border-zinc-200 pb-4">
+            <div class="space-y-2 mb-2 border-b border-zinc-200 dark:border-zinc-300 pb-4">
                 <div class="flex justify-between items-center text-sm">
-                    <span class="text-zinc-500">Subtotal</span>
-                    <span class="text-zinc-900 font-medium">IDR {{ number_format($this->subtotal, 0, '.',
+                    <span class="text-zinc-500 dark:text-zinc-100">Subtotal</span>
+                    <span class="text-zinc-900 dark:text-zinc-50 font-medium">IDR {{ number_format($this->subtotal, 0,
+                        '.',
                         ',') }}</span>
                 </div>
                 <div class="flex justify-between items-center text-sm">
-                    <span class="text-zinc-500">PB1 {{ $this->taxPercentage }}%</span>
-                    <span class="text-zinc-900 font-medium">IDR {{ number_format($this->taxAmount, 0, '.', ',')
+                    <span class="text-zinc-500 dark:text-zinc-100">PB1 {{ $this->taxPercentage }}%</span>
+                    <span class="text-zinc-900 dark:text-zinc-50 font-medium">IDR {{ number_format($this->taxAmount, 0,
+                        '.', ',')
                         }}</span>
                 </div>
             </div>
 
             <div class="flex justify-between items-center mb-6">
-                <span class="text-zinc-900 font-bold">Total Pembayaran</span>
-                <span class="text-2xl font-black text-orange-600">
+                <span class="text-zinc-900 dark:text-zinc-50 font-bold">Total Pembayaran</span>
+                <span class="text-2xl font-black text-brand-600">
                     IDR {{ number_format($this->grandTotal, 0, '.', ',') }}
                 </span>
             </div>
 
             <button wire:click="confirmOrder" wire:loading.attr="disabled"
-                class="w-full bg-orange-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition-all cursor-pointer disabled:opacity-50">
+                class="w-full bg-brand-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition-all cursor-pointer disabled:opacity-50">
                 <span wire:loading.remove>Konfirmasi Pesanan</span>
                 <span wire:loading>Memproses Pesanan...</span>
             </button>
