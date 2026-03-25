@@ -24,7 +24,6 @@ new class extends Component
 
     public function getListeners()
     {
-        // Mendengarkan channel order.{id}
         return [
             "echo:order.{$this->order->id},OrderUpdated" => 'refreshStatus',
         ];

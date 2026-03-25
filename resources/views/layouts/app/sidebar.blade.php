@@ -15,13 +15,17 @@
 
         <flux:sidebar.nav>
             <flux:sidebar.group :heading="__('Platform')" class="grid">
+                <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')"
+                    wire:navigate>
+                    {{ __('Dashboard') }}
+                </flux:sidebar.item>
                 <flux:sidebar.item icon="qr-code" :href="route('qr-code')" :current="request()->routeIs('qr-code')"
                     wire:navigate>
                     {{ __('QR Code') }}
                 </flux:sidebar.item>
-                <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')"
-                    wire:navigate>
-                    {{ __('Dashboard') }}
+                <flux:sidebar.item icon="shopping-cart" :href="route('kitchen.index')"
+                    :current="request()->routeIs('kitchen.index')" wire:navigate>
+                    {{ __('Kitchen') }}
                 </flux:sidebar.item>
 
                 @can('change menu')

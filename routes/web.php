@@ -30,7 +30,7 @@ Route::middleware(['auth', 'role:super_admin|admin_cabang'])->group(function () 
 
 Route::middleware(['auth', 'role:super_admin|admin_cabang|kitchen'])->group(function () {
     Route::prefix('kitchen')->name('kitchen.')->group(function () {
-        Route::livewire('/', 'pages::kitchen.index')->name('kitchen.index');
+        Route::livewire('/', 'pages::kitchen.index')->name('index');
     });
 });
 

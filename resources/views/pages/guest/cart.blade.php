@@ -4,6 +4,8 @@ namespace App\Livewire\Pages;
 
 use Livewire\Component;
 use App\Models\Order;
+use App\Events\OrderUpdated;
+use App\Events\OrderSent;
 use Livewire\Attributes\Computed;
 use Illuminate\Support\Facades\DB;
 
@@ -170,17 +172,20 @@ new class extends Component
 
         // 3. Update Status Order di Database
         $this->order->update([
-            'status' => 'processing', // Pesanan masuk ke dapur
+            'status' => 'pending', // Pesanan masuk ke dapur
             'total_amount' => $total,
             'tax_amount' => $tax,
             'confirmed_at' => now(), // Tambahkan kolom ini di migrasi jika perlu
         ]);
 
-        // 4. Bersihkan Session Order ID 
+        // 4. Broadcast order update to others via Reverb
+        broadcast(new OrderSent($this->order))->toOthers();
+
+        // 5. Bersihkan Session Order ID 
         // Agar jika tamu scan lagi, mereka mulai dari awal (atau sesuai kebijakan resto)
         session()->forget('active_order_id');
 
-        // 5. Redirect ke halaman Sukses/Status Pesanan
+        // 6. Redirect ke halaman Sukses/Status Pesanan
         return redirect()->route('guest.order-status', ['order_number' => $this->order->order_number]);
     }
 
