@@ -13,12 +13,15 @@ new class extends Component
 {
     public $order;
     public $qrCodeSvg;
+    public $showQrModal = false;
+    public $tableNumber;
 
     public function mount($order_number)
     {
         $this->order = Order::with(['items.menu','table'])
             ->where('order_number', $order_number)
             ->firstOrFail();
+        $this->tableNumber = $this->order->table->number;
         $this->generateQrCode();
     }
 
@@ -75,7 +78,7 @@ new class extends Component
                 class="font-bold text-brand-600 dark:text-brand-600">#{{
                 $order->order_number }}</span>
         </p>
-        <div class="mt-2 flex justify-center">
+        <div class="mt-2 flex justify-center cursor-pointer" wire:click="$set('showQrModal', true)">
             {!! $qrCodeSvg !!}
         </div>
     </div>
@@ -145,4 +148,34 @@ new class extends Component
         <a href="{{ route('guest.menu') }}"
             class="text-brand-600 font-bold text-sm border-b-2 border-brand-600 pb-1">Pesan Lagi?</a>
     </div>
+    {{-- Modal to show image --}}
+    @if($showQrModal)
+    <div
+        class="fixed inset-0 bg-black/90 z-[10001] flex items-center justify-center p-6 animate-in fade-in duration-300">
+        {{-- Tombol Tutup di Pojok Kanan Atas --}}
+        <button wire:click="$set('showQrModal', false)"
+            class="absolute top-6 right-6 text-white/50 hover:text-white transition-colors">
+            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+
+        {{-- Kontainer Utama QR --}}
+        <div
+            class="w-full max-w-sm aspect-square bg-white p-4 rounded-[2.5rem] shadow-[0_0_50px_rgba(255,255,255,0.1)] flex flex-col items-center justify-center transform animate-in zoom-in-95 duration-300">
+            <div class="w-full h-full [&>svg]:w-full [&>svg]:h-full">
+                {!! $qrCodeSvg !!}
+            </div>
+
+            <div class="mt-6 text-center">
+                <h3 class="text-zinc-900 font-black text-xl tracking-tight">QResta</h3>
+                <p class="text-zinc-400 text-xs font-medium uppercase tracking-widest mt-1">Meja {{ $tableNumber }}
+                </p>
+            </div>
+        </div>
+
+        {{-- Overlay Klik untuk Tutup --}}
+        <div wire:click="$set('showQrModal', false)" class="absolute inset-0 -z-10"></div>
+    </div>
+    @endif
 </div>
