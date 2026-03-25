@@ -41,8 +41,8 @@ new class extends Component
         );
 
         // 2. GENERATE URL (Gunakan fungsi route agar lebih aman)
-        $url = route('order.scan', ['token' => $this->token]);
-
+        // $url = route('order.scan', ['token' => $this->token]);
+        $url = url("/s/{$this->token}");
         // 3. GENERATE QR CODE
         $renderer = new ImageRenderer(
             new RendererStyle(400),
