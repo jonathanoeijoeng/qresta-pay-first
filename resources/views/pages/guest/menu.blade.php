@@ -84,6 +84,7 @@ new class extends Component
 
         $branchId = session('customer_branch_id');
         $tableId = session('customer_table_id');
+        
         $orderNumber = 'QRS-' . date('Ymd') . '-' . str_pad($tableId, 3, '0', STR_PAD_LEFT);
 
         // 1. Ambil harga terbaru dari join branch_menu
@@ -111,6 +112,8 @@ new class extends Component
                 'total_amount' => 0
             ]
         );
+
+        session(['active_order_id' => $order->id]);
 
         $existingItem = $order->items()
             ->where('menu_id', $this->selectedMenu->id)

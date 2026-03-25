@@ -13,6 +13,28 @@ new class extends Component
     public $editingNote = '';
     public bool $showEditModal = false; 
     
+    public function mount() 
+    {
+        // dd(session()->all());
+        // Ambil ID order yang sedang aktif dari session yang sudah kita set sebelumnya
+        // Kita asumsikan key-nya adalah 'active_order_id'
+        $activeOrderId = session('active_order_id');
+
+        // Cek apakah ada order aktif, jika tidak ada, arahkan kembali ke menu
+        if (!$activeOrderId) {
+            return redirect()->route('guest.menu');
+        }
+
+        // Gunakan find atau findOrFail dari session tersebut
+        $this->order = \App\Models\Order::with('items')->find($activeOrderId);
+
+        // Proteksi tambahan jika ID di session ternyata tidak ada di database
+        if (!$this->order) {
+            session()->forget('active_order_id');
+            return redirect()->route('guest.menu');
+        }
+    }
+
     public function editNote($itemId)
     {
         $item = \App\Models\OrderItem::find($itemId);
@@ -50,17 +72,32 @@ new class extends Component
     }
 
     #[Computed]
-    public function taxAmount(): int
+    public function cartItems()
     {
-        // PB1 sebesar 10% dari total_amount (subtotal)
-        return (int) (($this->order->total_amount ?? 0) * 0.10);
+        // Mengambil items dari order yang ada di session
+        return $this->order ? $this->order->items : collect();
     }
 
     #[Computed]
-    public function grandTotal(): int
+    public function subtotal()
     {
-        // Total Pesanan + Pajak
-        return (int) (($this->order->total_amount ?? 0) + $this->taxAmount);
+        // Contoh logic: Jumlahkan (harga * qty) dari semua item di cart
+        return $this->cartItems->sum(fn($item) => $item->price_at_order * $item->quantity);
+    }
+
+    #[Computed]
+    public function taxAmount()
+    {
+        // Ambil persentase dari config (hasil suntikan middleware)
+        $percentage = config('app.tax_percentage', 10); 
+        
+        return $this->subtotal * ($percentage / 100);
+    }
+
+    #[Computed]
+    public function grandTotal()
+    {
+        return $this->subtotal + $this->taxAmount;
     }
 
     #[Computed]
@@ -119,6 +156,34 @@ new class extends Component
         }
     }
 
+    public function confirmOrder()
+    {
+        // 1. Proteksi: Pastikan order ada dan punya item
+        if (!$this->order || $this->order->items->isEmpty()) {
+            return $this->dispatch('notify', ['type' => 'error', 'message' => 'Keranjang masih kosong!']);
+        }
+
+        // 2. Finalisasi Perhitungan (Subtotal + PB1 10%)
+        $subtotal = $this->subtotal;
+        $tax = $subtotal * 0.1;
+        $total = $subtotal + $tax;
+
+        // 3. Update Status Order di Database
+        $this->order->update([
+            'status' => 'processing', // Pesanan masuk ke dapur
+            'total_amount' => $total,
+            'tax_amount' => $tax,
+            'confirmed_at' => now(), // Tambahkan kolom ini di migrasi jika perlu
+        ]);
+
+        // 4. Bersihkan Session Order ID 
+        // Agar jika tamu scan lagi, mereka mulai dari awal (atau sesuai kebijakan resto)
+        session()->forget('active_order_id');
+
+        // 5. Redirect ke halaman Sukses/Status Pesanan
+        return redirect()->route('guest.order-status', ['order_number' => $this->order->order_number]);
+    }
+
     public function render()
     {
         // 1. Ambil Order Utama
@@ -148,7 +213,7 @@ new class extends Component
 ?>
 
 <div>
-    <div class="min-h-screen bg-zinc-50 pb-40">
+    <div class="min-h-screen bg-zinc-50">
         <header class="bg-white p-4 border-b border-zinc-100 sticky top-0 z-10 flex items-center gap-4">
             <a href="{{ route('guest.menu') }}" class="p-2 bg-zinc-50 rounded-full">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
@@ -209,12 +274,12 @@ new class extends Component
 
         @if($this->order && $this->order->items->count() > 0)
         <div
-            class="fixed bottom-0 left-0 right-0 bg-white p-6 border-t border-zinc-100 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-20">
+            class="fixed bottom-6 left-0 right-0 bg-white p-6 border-t border-zinc-100 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-50 transition-all duration-300 ease-in-out">
 
             <div class="space-y-2 mb-2 border-b border-zinc-200 pb-4">
                 <div class="flex justify-between items-center text-sm">
                     <span class="text-zinc-500">Subtotal</span>
-                    <span class="text-zinc-900 font-medium">IDR {{ number_format($this->order->total_amount, 0, '.',
+                    <span class="text-zinc-900 font-medium">IDR {{ number_format($this->subtotal, 0, '.',
                         ',') }}</span>
                 </div>
                 <div class="flex justify-between items-center text-sm">
@@ -231,9 +296,10 @@ new class extends Component
                 </span>
             </div>
 
-            <button wire:click="confirmOrder"
-                class="w-full bg-orange-500 text-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-orange-500/30 active:scale-[0.98] transition-all flex justify-center items-center gap-2">
-                <span>Konfirmasi Pesanan</span>
+            <button wire:click="confirmOrder" wire:loading.attr="disabled"
+                class="w-full bg-orange-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition-all cursor-pointer disabled:opacity-50">
+                <span wire:loading.remove>Konfirmasi Pesanan</span>
+                <span wire:loading>Memproses Pesanan...</span>
             </button>
         </div>
         @endif
@@ -243,8 +309,7 @@ new class extends Component
         <div class="bg-white w-full max-w-md rounded-t-[2.5rem] p-8 animate-in slide-in-from-bottom duration-300">
             <div class="w-12 h-1 bg-zinc-200 rounded-full mx-auto mb-6"></div>
 
-            <h3 class="text-lg font-black text-zinc-900 mb-2">Ubah Catatan</h3>
-            <p class="text-sm text-zinc-500 mb-6 font-medium">Instruksi khusus untuk koki dapur</p>
+            <h3 class="text-lg font-black text-zinc-900 mb-2">Tambah/Ubah Catatan</h3>
 
             <textarea wire:model="editingNote"
                 class="w-full bg-zinc-50 border-none rounded-3xl p-5 text-sm focus:ring-2 focus:ring-orange-500 h-32 resize-none placeholder:text-zinc-300"

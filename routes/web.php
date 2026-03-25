@@ -48,9 +48,10 @@ Route::get('/s/{token}', function ($token) {
     return redirect()->route('guest.menu');
 })->name('order.scan');
 
-Route::middleware(['check.table.session'])->group(function () {
+Route::middleware(['order.env'])->group(function () {
     Route::livewire('/menu', 'pages::guest.menu')->name('guest.menu');
     Route::livewire('/cart', 'pages::guest.cart')->name('guest.cart');
+    Route::livewire('/order-status/{order_number}', 'pages::guest.order-status')->name('guest.order-status');
 });
 
 Route::get('/invalid-scan', function () {
