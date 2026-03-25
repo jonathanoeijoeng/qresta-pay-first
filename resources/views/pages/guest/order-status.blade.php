@@ -59,7 +59,7 @@ new class extends Component
 };
 ?>
 
-<div class="max-w-md mx-auto min-h-screen bg-zinc-50 p-6">
+<div class="max-w-md mx-auto min-h-screen bg-zinc-50 p-6 dark:bg-zinc-800">
     <div class="text-center mb-4">
         <div class="inline-flex items-center justify-center w-20 h-20 bg-orange-100 rounded-full mb-4">
             @if($order->status == 'pending')
@@ -70,15 +70,17 @@ new class extends Component
             <div class="text-green-600 text-3xl">✅</div>
             @endif
         </div>
-        <h1 class="text-2xl font-black text-zinc-900 uppercase">Pesanan Diterima!</h1>
-        <p class="text-zinc-500">Nomor Antrian: <span class="font-bold text-zinc-800">#{{ $order->order_number }}</span>
+        <h1 class="text-2xl font-black text-brand-600 dark:text-brand-600 uppercase">Pesanan Diterima!</h1>
+        <p class="text-zinc-500 dark:text-zinc-100">Nomor Antrian: <span
+                class="font-bold text-brand-600 dark:text-brand-600">#{{
+                $order->order_number }}</span>
         </p>
         <div class="mt-2 flex justify-center">
             {!! $qrCodeSvg !!}
         </div>
     </div>
 
-    <div class="bg-white rounded-3xl p-6 shadow-sm border border-zinc-100 mb-6">
+    <div class="bg-white dark:bg-zinc-400 rounded-3xl p-6 shadow-sm border border-zinc-100 mb-6">
         <div class="space-y-6">
             @php
             $steps = [
@@ -112,7 +114,7 @@ new class extends Component
         </div>
     </div>
 
-    <div class="bg-zinc-900 text-white rounded-3xl p-6 shadow-xl">
+    <div class="bg-zinc-600 text-zinc-50 rounded-3xl p-6 shadow-xl">
         <h4 class="text-xs uppercase tracking-widest opacity-50 mb-4">Ringkasan Pesanan</h4>
         <div class="space-y-3 mb-4 border-b border-white/10 pb-4">
             @foreach($order->items as $item)

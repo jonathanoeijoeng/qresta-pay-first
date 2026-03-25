@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             BranchSeeder::class,
             UserSeeder::class,
-            // TableSeeder::class,
+            TableSeeder::class,
             // CategorySeeder::class,
             MenuSeeder::class,
             RolePermissionSeeder::class,

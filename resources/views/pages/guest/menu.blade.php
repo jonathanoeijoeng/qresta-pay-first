@@ -3,6 +3,12 @@
 use Livewire\Component;
 use App\Models\Menu;
 use App\Models\Order;
+use App\Models\Table;
+use App\Models\TableSession;
+use App\Models\GlobalSetting;
+use App\Models\Category;
+use App\Models\OrderItem;
+use App\Models\Branch;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 
@@ -12,6 +18,7 @@ new class extends Component
     public $cart = []; // Format: [menu_id => ['qty' => 1, 'notes' => '', 'price' => 15000]]
     public $search = '';
     public $branchName;
+    public $branchId;
     public $tableNumber;
     public $cartCount = 0;
     public $cartTotal = 0;
@@ -32,17 +39,19 @@ new class extends Component
 
     public function openNoteModal($menuId)
     {
-        $this->selectedMenu = \App\Models\Menu::find($menuId);
+        $this->selectedMenu = Menu::find($menuId);
         $this->tempNote = ''; // Reset catatan setiap buka modal
         $this->showNoteModal = true;
     }
     
     public function loadMenus()
     {
-        $branchId = session('customer_branch_id');
-        $branch = \App\Models\Branch::find($branchId);
+        $tableId = session('customer_table_id');
+        $table = Table::find($tableId);
+        $this->branchId = $table->branch_id;      
+        $branch = Branch::find($this->branchId);
         $this->branchName = $branch->name;
-        $this->tableNumber = session('customer_table_number');
+        $this->tableNumber = $table->number;
         $this->menus = $branch->menus()->wherePivot('is_available', true)->get();
     }
 
@@ -82,7 +91,6 @@ new class extends Component
             return;
         }
 
-        $branchId = session('customer_branch_id');
         $tableId = session('customer_table_id');
         
         $orderNumber = 'QRS-' . date('Ymd') . '-' . str_pad($tableId, 3, '0', STR_PAD_LEFT);
@@ -91,7 +99,7 @@ new class extends Component
         $menuData = \App\Models\Menu::query()
             ->join('branch_menu', 'menus.id', '=', 'branch_menu.menu_id')
             ->where('menus.id', $this->selectedMenu->id)
-            ->where('branch_menu.branch_id', $branchId)
+            ->where('branch_menu.branch_id', $this->branchId)
             ->select('branch_menu.price')
             ->first();
 
@@ -102,7 +110,7 @@ new class extends Component
         // 2. Cari atau Buat Order
         $order = \App\Models\Order::firstOrCreate(
             [
-                'branch_id' => $branchId,
+                'branch_id' => $this->branchId,
                 'table_id' => $tableId,
                 'status' => 'draft',
                 'payment_status' => 'unpaid'
@@ -151,10 +159,10 @@ new class extends Component
 
     public function render()
     {
-        $branchId = session('customer_branch_id');
         $searchTerm = '%' . $this->search . '%';
+        $branchId = $this->branchId;
 
-            $categories = \App\Models\Category::query()
+            $categories = Category::query()
                 // 1. FILTER KATEGORI: Hanya ambil kategori yang punya menu tersedia & cocok dengan search
                 ->whereHas('menus', function ($q) use ($branchId, $searchTerm) {
                     $q->where('menus.name', 'ilike', $searchTerm)
@@ -198,12 +206,12 @@ new class extends Component
             <header class="flex flex-col items-center justify-center pt-4 pb-2">
                 <div class="flex items-center gap-3">
                     <img src="{{ asset('logo.svg') }}" alt="Logo Qresta" />
-                    <div class="font-black tracking-tight text-zinc-900 uppercase text-2xl">
+                    <div class="font-black tracking-tight text-zinc-900 dark:text-zinc-50 uppercase text-2xl">
                         QRESTA <span class="font-normal">{{ $branchName }}</span>
                     </div>
                 </div>
                 <flux:badge color="zinc" inset="top" class="mt-1">
-                    Meja #{{ session('customer_table_number') }}
+                    Meja #{{ $tableNumber }}
                 </flux:badge>
             </header>
 
@@ -215,13 +223,14 @@ new class extends Component
         @foreach($categories as $category)
         <section>
             <flux:heading size="lg"
-                class="mt-8 mb-4 bg-brand-200 px-2 py-2 font-bold text-zinc-900 border-b border-zinc-200 rounded-lg">
+                class="mt-8 mb-4 bg-brand-200 dark:bg-brand-500 px-2 py-2 font-bold text-zinc-900 border-b border-zinc-200 rounded-lg">
                 {{ $category->name }}
             </flux:heading>
 
             <div class="grid grid-cols-1 gap-4">
                 @forelse($category->menus as $menu)
-                <div class="bg-white rounded-xl shadow-sm border border-zinc-100 flex overflow-hidden h-28">
+                <div
+                    class="bg-white dark:bg-brand-200 rounded-xl shadow-sm border border-zinc-100 flex overflow-hidden h-28">
                     {{-- Foto --}}
                     <div class="w-24 bg-zinc-100 flex items-center justify-center   ">
                         <img src="{{ $menu->image ? Storage::disk('public')->url('menu-images/' . $menu->image) : asset('images/food.svg') }}"
@@ -284,7 +293,7 @@ new class extends Component
     @if($cartCount > 0)
     <div class="fixed bottom-10 left-0 right-0 px-6 z-[9999] animate-in fade-in slide-in-from-bottom-5">
         <div
-            class="bg-zinc-900 text-white p-4 rounded-2xl shadow-2xl flex items-center justify-between border border-white/5">
+            class="bg-zinc-900 dark:bg-zinc-700 text-white p-4 rounded-2xl shadow-2xl flex items-center justify-between border border-white/5">
             <div class="flex items-center gap-3">
                 <div
                     class="bg-brand-500 text-white w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black">
@@ -304,8 +313,9 @@ new class extends Component
     @endif
     @if($showNoteModal)
     <div class="fixed inset-0 bg-black/50 z-[10000] flex items-end sm:items-center justify-center p-0 sm:p-4">
-        <div
-            class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-300">
+        <div class="bg-white dark:bg-zinc-300 w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 
+            shadow-2xl animate-in slide-in-from-bottom duration-300 
+            overflow-x-hidden border-none outline-none">
             <div class="flex justify-between items-start mb-4">
                 <div>
                     <h3 class="text-xl font-bold text-zinc-900">{{ $selectedMenu->name }}</h3>
@@ -319,7 +329,7 @@ new class extends Component
             </div>
 
             <textarea wire:model="tempNote" placeholder="Contoh: Tidak pakai sambal, ekstra bawang goreng..."
-                class="w-full bg-zinc-100 border-none rounded-2xl p-4 text-sm focus:ring-2 focus:ring-orange-500 h-32 resize-none"></textarea>
+                class="w-full bg-zinc-100 text-black border-none rounded-2xl p-4 text-base focus:ring-2 focus:ring-orange-500 h-32 resize-none"></textarea>
 
             <div class="mt-6 flex gap-3">
                 <button wire:click="$set('showNoteModal', false)" class="flex-1 py-4 text-zinc-500 font-bold">

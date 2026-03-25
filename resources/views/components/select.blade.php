@@ -1,10 +1,11 @@
 @props([
 'label' => '',
-'name',
+'name' => '', // Beri default value agar tidak error jika tidak diisi
 ])
 
 @php
-$model = $attributes->wire('model')->value();
+// Kita cek apakah atribut 'disabled' ada di $attributes
+$isDisabled = $attributes->has('disabled') && $attributes->get('disabled');
 @endphp
 
 <div>
@@ -22,7 +23,8 @@ $model = $attributes->wire('model')->value();
         focus:outline-none
         focus:ring
         focus:border-brand-400
-        dark:bg-zinc-700 dark:border-brand-700 dark:text-white'
+        dark:bg-zinc-700 dark:border-brand-700 dark:text-white ' .
+        ($isDisabled ? 'bg-zinc-100 cursor-not-allowed opacity-70 text-zinc-500' : '')
         ]) }}
         >
         {{ $slot }}

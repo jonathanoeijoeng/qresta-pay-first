@@ -20,7 +20,6 @@ class TableSeeder extends Seeder
                     'branch_id' => $branch->id,
                     'number' => str_pad($i, 2, '0', STR_PAD_LEFT), // 01, 02, dst
                     'capacity' => 4,
-                    'status' => 'available',
                 ]);
             }
         }

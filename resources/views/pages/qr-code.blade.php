@@ -7,42 +7,60 @@ use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
 use Illuminate\Support\Str;
 use App\Models\Branch;
+use App\Models\Table;
+use App\Models\TableSession;
+use Illuminate\Support\Facades\Auth;
 
 new class extends Component
 {
     public $qrCodeRawSvg;
     public $branchName;
     public $tableNumber;
+    public $table_id; // Kita pakai ID Meja agar lebih akurat
     public $branch_id;
     public $token;
 
+    public function mount()
+    {
+        if (Auth::user()->branch_id) {
+        $this->branch_id = Auth::user()->branch_id;
+        $this->branchName = Auth::user()->branch->name;
+        } else {
+            // Jika Super Admin (branch_id biasanya null)
+            $this->branch_id = null; 
+            $this->branchName = "Semua Cabang (Super Admin)";
+        }
+    }
 
     public function generate()
     {
-        // dd($this->all());
         $this->validate([
             'branch_id' => 'required|exists:branches,id',
-            'tableNumber' => 'required|string|max:10',
+            'table_id' => 'required|exists:tables,id',
         ]);
 
-        $this->token = Str::random(16);
-        
-        // 1. SIMPAN/UPDATE KE DATABASE
-        // Kita cari meja berdasarkan nomor dan cabang, jika ada kita update tokennya,
-        // jika belum ada, kita buat data baru.
-        $table = \App\Models\Table::updateOrCreate(
-            [
-                'branch_id' => $this->branch_id,
-                'number' => $this->tableNumber, // Sesuaikan jika kolomnya 'name' atau 'table_number'
-            ],
-            [
-                'qr_token' => $this->token
-            ]
-        );
+        // 1. CEK ATAU BUAT SESI BARU (Table Session Logic)
+        // Kita cari apakah meja ini sudah punya sesi aktif
+        $activeSession = TableSession::where('table_id', $this->table_id)
+            ->where('status', 'active')
+            ->first();
 
-        // 2. GENERATE URL (Gunakan fungsi route agar lebih aman)
-        // $url = route('order.scan', ['token' => $this->token]);
+        if (!$activeSession) {
+            $this->token = Str::random(16);
+            $activeSession = TableSession::create([
+                'table_id' => $this->table_id,
+                'token' => $this->token,
+                'started_at' => now(),
+                'status' => 'active',
+            ]);
+        } else {
+            // Jika sudah ada sesi aktif, pakai token yang sudah ada
+            $this->token = $activeSession->token;
+        }
+
+        // 2. GENERATE URL
         $url = url("/s/{$this->token}");
+
         // 3. GENERATE QR CODE
         $renderer = new ImageRenderer(
             new RendererStyle(400),
@@ -51,62 +69,100 @@ new class extends Component
         $writer = new Writer($renderer);
         
         $this->qrCodeRawSvg = $writer->writeString($url);
+        
+        // Ambil data untuk tampilan label
+        $table = Table::find($this->table_id); 
         $this->branchName = Branch::find($this->branch_id)->name;
+        $this->tableNumber = $table->number;
 
-        $this->dispatch('toast', type: 'success', text: 'QR Code berhasil disimpan ke database!');
+        $this->dispatch('toast', type: 'success', text: 'QR Code Sesi Aktif Berhasil Dimuat!');
     }
 
     public function render()
     {
         return $this->view([
-            'branches' => Branch::all()
-        ])->title('QR Code');
+            'branches' => \App\Models\Branch::all(),
+            // Ambil meja hanya jika branch_id sudah terisi
+            'tables' => $this->branch_id 
+                ? \App\Models\Table::where('branch_id', $this->branch_id)->get() 
+                : []
+        ])->title('Generate QR Code');
     }
 };
 ?>
 
-<div>
-    <x-header header="QR Code" description="Generate QR Code" />
-    <div class="p-6 bg-white rounded-xl border border-zinc-200">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {{-- Sisi Kiri: Form Input --}}
-            <div class="space-y-4">
-                <flux:select wire:model="branch_id" label="Pilih Cabang">
-                    <flux:select.option value="">Pilih Cabang</flux:select.option>
-                    @foreach($branches as $branch)
-                    <flux:select.option value="{{ $branch->id }}">{{ $branch->name }}</flux:select.option>
-                    @endforeach
-                </flux:select>
+<div class="space-y-6">
+    <x-header header="QR Code Manager" description="Generate sesi meja baru untuk tamu" />
 
-                <flux:input wire:model="tableNumber" label="Nomor Meja" placeholder="Contoh: 01, 12, atau A1" />
+    <div class="p-6 bg-white rounded-2xl border border-zinc-200 shadow-sm">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
 
-                <flux:button wire:click="generate" variant="primary"
-                    class="w-fit text-white bg-brand-500 hover:bg-brand-600">
-                    Generate QR Code
+            {{-- Sisi Kiri: Kendali Sesi --}}
+            <div class="space-y-6">
+                <div class="p-4 bg-zinc-50 rounded-xl border border-zinc-100 space-y-4">
+                    <h3 class="text-sm font-bold text-zinc-700 flex items-center gap-2">
+                        Konfigurasi Sesi
+                    </h3>
+
+                    <div>
+                        <x-select label="Pilih Cabang" name="branch_id" wire:model.live="branch_id"
+                            :disabled="(!Auth::user()->can('manage-branches'))">
+                            <option value="">-- Pilih Cabang --</option>
+                            @foreach($branches as $branch)
+                            <option value="{{ $branch->id }}">{{ $branch->name }} ({{ $branch->code }})</option>
+                            @endforeach
+                        </x-select>
+                    </div>
+
+                    {{-- Dropdown Meja (Muncul jika Cabang sudah dipilih) --}}
+                    <flux:select wire:model="table_id" label="Pilih Meja">
+                        <flux:select.option value="">-- Pilih Nomor Meja --</flux:select.option>
+                        @foreach($tables as $table)
+                        <flux:select.option value="{{ $table->id }}">
+                            Meja {{ $table->number }}
+                            {{-- Anda bisa tambah badge status di sini nanti --}}
+                        </flux:select.option>
+                        @endforeach
+                    </flux:select>
+                </div>
+
+                <flux:button wire:click="generate" variant="primary" icon="qr-code"
+                    class="w-full md:w-fit shadow-lg shadow-brand-500/20 bg-brand-500 hover:bg-brand-600 transition-all active:scale-95">
+                    Generate & Buka Sesi
                 </flux:button>
             </div>
 
-            {{-- Sisi Kanan: Hasil QR --}}
-            <div id="printable-qr" class="print-area p-8 bg-white border border-zinc-100 flex flex-col items-center">
-                <div
-                    class="flex flex-col items-center justify-center border-2 border-dashed border-zinc-100 rounded-xl p-4">
+            {{-- Sisi Kanan: Preview QR (Print Area) --}}
+            <div class="flex flex-col items-center">
+                <div id="printable-qr"
+                    class="print-area p-8 bg-white border-2 border-dashed border-zinc-200 rounded-3xl flex flex-col items-center min-h-[350px] justify-center w-full max-w-[300px]">
                     @if($qrCodeRawSvg)
-                    <div class="bg-white p-4 rounded-lg mb-4">
+                    <div class="bg-white p-2 mb-4">
                         {!! $qrCodeRawSvg !!}
                     </div>
-                    <p class="font-bold text-zinc-700">QResta {{ $branchName }}</p>
-                    <p class="text-sm text-zinc-700">Table: {{ $tableNumber }}</p>
-                    <p class="text-sm text-zinc-700">Token: {{ $token }}</p>
+                    <div class="text-center space-y-1">
+                        <h2 class="text-xl font-black text-zinc-900 tracking-tight">QResta</h2>
+                        <p class="text-xs font-medium text-zinc-500 uppercase tracking-widest">{{ $branchName }}</p>
+                        <div class="mt-4 py-1 px-3 bg-zinc-900 text-white rounded-lg inline-block">
+                            <span class="text-sm font-bold">MEJA {{ $tableNumber }}</span>
+                        </div>
+                        <p class="text-[10px] text-zinc-400 mt-4 font-mono">Token: {{ $token }}</p>
+                    </div>
                     @else
-                    <div class="text-center text-zinc-400">
-                        <flux:icon.qr-code class="w-12 h-12 mx-auto mb-2 opacity-20" />
-                        <p class="text-xs">Isi data dan klik generate untuk melihat QR</p>
+                    <div class="text-center text-zinc-300">
+                        <flux:icon.qr-code class="w-16 h-16 mx-auto mb-3 opacity-20" />
+                        <p class="text-sm">Pilih meja untuk<br>generate QR Code</p>
                     </div>
                     @endif
                 </div>
-            </div>
-            <div class="flex gap-2 mt-4 no-print">
-                <flux:button icon="printer" size="sm" onclick="window.print()">Print</flux:button>
+
+                @if($qrCodeRawSvg)
+                <div class="mt-6 no-print w-full max-w-[300px]">
+                    <flux:button icon="printer" variant="subtle" class="w-full" onclick="window.print()">
+                        Cetak QR Code
+                    </flux:button>
+                </div>
+                @endif
             </div>
         </div>
     </div>

@@ -16,13 +16,7 @@ return new class extends Migration
             $table->foreignId('branch_id')->constrained()->onDelete('cascade');
             $table->string('number'); // Contoh: "01", "A1", atau "VIP-01"
             $table->integer('capacity')->default(4); // Kapasitas kursi
-
-            // Status meja untuk dashboard waitress
-            $table->enum('status', ['available', 'occupied', 'reserved'])->default('available');
-
-            // Token unik untuk QR Code (untuk keamanan agar tidak mudah ditebak)
-            $table->string('qr_token')->unique();
-
+            $table->text('description')->nullable();
             $table->timestamps();
         });
     }

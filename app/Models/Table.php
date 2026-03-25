@@ -7,7 +7,7 @@ use Illuminate\Support\Str;
 
 class Table extends Model
 {
-    protected $fillable = ['branch_id', 'number', 'capacity', 'status', 'qr_token'];
+    protected $fillable = ['branch_id', 'number', 'capacity', 'decription'];
 
     protected static function boot()
     {
