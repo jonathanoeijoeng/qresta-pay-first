@@ -106,13 +106,13 @@ new class extends Component
 
             ->when($this->search, function($query) {
                 $query->where(function($q) {
-                    $q->where('order_number', 'like', '%' . $this->search . '%')
+                    $q->where('order_number', 'ilike', '%' . $this->search . '%')
                     ->orWhereHas('table', function($t) {
-                        $t->where('number', 'like', '%' . $this->search . '%');
+                        $t->where('number', 'ilike', '%' . $this->search . '%');
                     })
                     // Opsional: Super Admin bisa cari berdasarkan nama cabang
                     ->orWhereHas('branch', function($b) {
-                        $b->where('name', 'like', '%' . $this->search . '%');
+                        $b->where('name', 'ilike', '%' . $this->search . '%');
                     });
                 });
             })
@@ -179,7 +179,7 @@ new class extends Component
                             {{ $order->branch->code }}
                         </div>
                     </div>
-                    <flux:badge color="{{ $order->status === 'completed' ? 'green' : 'orange' }}" size="sm">
+                    <flux:badge color="{{ $order->status === 'completed served' ? 'green' : 'orange' }}" size="sm">
                         {{ $order->status }}
                     </flux:badge>
                 </div>
@@ -205,8 +205,9 @@ new class extends Component
 
                 <div x-data="{ showPayment: false }">
                     <button x-show="!showPayment" @click="showPayment = true" class="w-full bg-brand-600 text-white py-2 rounded-xl font-bold disabled:opacity-50
-                        cursor-pointer disabled:cursor-not-allowed transition-all" {{ $order->status !== 'completed' ?
-                        'disabled' : '' }}>
+                        cursor-pointer disabled:cursor-not-allowed transition-all" @disabled($order->status !==
+                        'completed served')
+                        >
                         Bayar Sekarang
                     </button>
 

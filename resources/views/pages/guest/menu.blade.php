@@ -177,7 +177,7 @@ new class extends Component
             'total_amount' => (int) $order->items()->sum('subtotal')
         ];
         
-        if ($order->status === 'completed') {
+        if ($order->status === 'completed served') {
             $updateData['status'] = 'pending'; // Reset agar koki lihat ada tambahan
         }
 

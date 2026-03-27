@@ -8,6 +8,7 @@ use BaconQrCode\Writer;
 use Illuminate\Support\Str;
 use App\Models\Branch;
 use App\Models\Table;
+use App\Models\Order;
 use App\Models\TableSession;
 use Illuminate\Support\Facades\Auth;
 
@@ -39,8 +40,17 @@ new class extends Component
             'table_id' => 'required|exists:tables,id',
         ]);
 
-        // 1. CEK ATAU BUAT SESI BARU (Table Session Logic)
-        // Kita cari apakah meja ini sudah punya sesi aktif
+
+        // 1. CEK APAKAH ADA ORDER YANG BELUM LUNAS DI MEJA INI
+        $hasUnpaidOrder = Order::where('table_id', $this->table_id)
+            ->where('payment_status', 'unpaid')
+            ->exists();
+
+        if ($hasUnpaidOrder) {
+            $this->dispatch('toast', type: 'error', text: 'Meja ini masih memiliki pesanan yang belum dibayar!');
+            return; // Hentikan proses jika masih ada hutang
+        }
+
         $activeSession = TableSession::where('table_id', $this->table_id)
             ->where('status', 'active')
             ->first();

@@ -47,14 +47,17 @@ new class extends Component
     {
         $orders = Order::whereIn('status', ['pending', 'processing'])
             ->with(['table', 'branch', 'items' => function($query) {
-                // Eager loading items yang belum matang saja
-                $query->whereNotIn('status', ['cooked', 'served'])->with('menu');
+                // 1. Ambil items yang belum matang/disajikan
+                $query->whereNotIn('status', ['cooked', 'served'])
+                    ->with('menu') // Load relasi menu
+                    ->join('menus', 'order_items.menu_id', '=', 'menus.id') // Join untuk sorting
+                    ->select('order_items.*') // Pastikan hanya kolom order_items yang diambil agar tidak bentrok
+                    ->orderBy('menus.name', 'asc'); // Urutkan berdasarkan nama menu
             }])
-            // Jika user punya branch_id, filter. Jika null (Super Admin), ambil semua.
             ->when(auth()->user()->branch_id, function($query) {
                 return $query->where('branch_id', auth()->user()->branch_id);
             })
-            ->oldest()
+            ->oldest() // Card tetap urut berdasarkan pesanan terlama (FIFO)
             ->get();
 
         // Filter manual: Hapus order yang tidak memiliki items (karena semua itemnya mungkin sudah cooked)
@@ -85,7 +88,7 @@ new class extends Component
         // PENENTUAN STATUS ORDER (HEADER)
         if ($servedCount === $totalItems) {
             // SEMUA piring sudah di meja tamu
-            $newOrderStatus = 'completed'; 
+            $newOrderStatus = 'completed-served'; 
         } elseif ($cookingCount > 0 || $processingCount > 0 || $servedCount > 0) {
             // Ada yang lagi dimasak ATAU ada yang sudah diantar tapi belum semua
             $newOrderStatus = 'processing';
@@ -112,7 +115,7 @@ new class extends Component
         } elseif ($newStatus === 'served') {
             // Mass update ke served & selesaikan order
             $order->items()->where('status', '!=', 'served')->update(['status' => 'served']);
-            $order->update(['status' => 'completed']);
+            $order->update(['status' => 'completed-served']);
             
         };
 

@@ -114,7 +114,7 @@ new class extends Component
                 class="font-bold text-brand-600 dark:text-brand-600">#{{
                 $order->order_number }}</span>
         </p>
-        @if($order->status == 'completed')
+        @if($order->status == 'completed-served')
         <div class="mt-8">
             <button wire:click="$set('showPaymentModal', true)"
                 class="w-full bg-brand-500 hover:bg-brand-600 py-4 rounded-2xl text-white font-black uppercase tracking-widest shadow-lg transition-all">
@@ -173,7 +173,7 @@ new class extends Component
             $steps = [
             ['id' => 'pending', 'label' => 'Pesanan Terkirim', 'desc' => 'Menunggu konfirmasi dapur'],
             ['id' => 'processing', 'label' => 'Sedang Dimasak', 'desc' => 'Koki sedang menyiapkan menu'],
-            ['id' => 'completed', 'label' => 'Siap Disajikan', 'desc' => 'Pesanan segera diantarkan ke meja ' .
+            ['id' => 'completed-served', 'label' => 'Siap Disajikan', 'desc' => 'Pesanan segera diantarkan ke meja ' .
             $order->table->number],
             ];
             $currentReached = true;
