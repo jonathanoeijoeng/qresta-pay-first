@@ -34,15 +34,15 @@ class UserSeeder extends Seeder
 
         // 3. WAITRESS (Cabang Sudirman)
         User::create([
-            'name' => 'Siti Waitress',
-            'email' => 'waitress.sudirman@qresta.com',
+            'name' => 'Cashier Sudirman',
+            'email' => 'cashier.sudirman@qresta.com',
             'password' => Hash::make('password'),
             'branch_id' => $sudirman->id,
         ]);
 
         // 4. KITCHEN (Cabang Sudirman)
         User::create([
-            'name' => 'Chef Juna',
+            'name' => 'Kitchen Sudirman',
             'email' => 'kitchen.sudirman@qresta.com',
             'password' => Hash::make('password'),
             'branch_id' => $sudirman->id,
@@ -50,10 +50,17 @@ class UserSeeder extends Seeder
 
         // 5. CASHIER (Cabang Menteng - Contoh beda cabang)
         User::create([
-            'name' => 'Budi Kasir',
-            'email' => 'cashier.menteng@qresta.com',
+            'name' => 'Admin Menteng',
+            'email' => 'admin.menteng@qresta.com',
             'password' => Hash::make('password'),
             'branch_id' => $menteng->id,
+        ]);
+
+        User::create([
+            'name' => 'Admin Senopati',
+            'email' => 'senopati@qresta.com',
+            'password' => Hash::make('password'),
+            'branch_id' => $senopati->id,
         ]);
     }
 }

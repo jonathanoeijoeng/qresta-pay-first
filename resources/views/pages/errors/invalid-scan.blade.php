@@ -3,7 +3,7 @@
         <div class="max-w-md w-full text-center space-y-6">
             {{-- Icon Peringatan --}}
             <div class="flex justify-center">
-                <div class="p-4 bg-orange-100 rounded-full">
+                <div class="p-4 bg-brand-100 rounded-full">
                     <flux:icon.hand-raised class="w-12 h-12 text-brand-500" />
                 </div>
             </div>

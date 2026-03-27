@@ -32,7 +32,7 @@ class OrderSent implements ShouldBroadcastNow
     public function broadcastOn(): array
     {
         return [
-            new Channel('order-sent', $this->order),
+            new PrivateChannel('order-sent-branch.' . $this->order->branch_id),
         ];
     }
 
@@ -41,6 +41,8 @@ class OrderSent implements ShouldBroadcastNow
         return [
             'id' => $this->order->id,
             'status' => $this->order->status,
+            'table_number' => $this->order->table->number ?? 'N/A',
+            'branch_id' => $this->order->branch_id
         ];
     }
 }

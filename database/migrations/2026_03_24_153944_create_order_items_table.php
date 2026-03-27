@@ -19,6 +19,7 @@ return new class extends Migration
             $table->integer('price_at_order'); // Simpan harga saat dipesan (jaga-jaga jika harga menu berubah nanti)
             $table->integer('subtotal');
             $table->string('notes')->nullable();
+            $table->string('status')->default('pending');
             $table->timestamps();
         });
     }

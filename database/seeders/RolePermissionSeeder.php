@@ -37,6 +37,15 @@ class RolePermissionSeeder extends Seeder
         }
 
         $user = User::where('email', 'owner@qresta.com')->first()->assignRole('super_admin');
+        User::where('email', 'admin.sudirman@qresta.com')->first()->assignRole('admin_cabang');
+        User::where('email', 'cashier.sudirman@qresta.com')->first()->assignRole('cashier');
+        // User::where('email', 'waitress.sudirman@qresta.com')->first()->assignRole('waitress');
+        User::where('email', 'kitchen.sudirman@qresta.com')->first()->assignRole('kitchen');
+
+        User::where('email', 'admin.menteng@qresta.com')->first()->assignRole('admin_cabang');
+        // User::where('email', 'cashier.menteng@qresta.com')->first()->assignRole('cashier');
+        // User::where('email', 'waitress.menteng@qresta.com')->first()->assignRole('waitress');
+        // User::where('email', 'kitchen.menteng@qresta.com')->first()->assignRole('kitchen');
 
         // Contoh Assignment Permission Spesifik
         Role::findByName('kitchen')->givePermissionTo(['view orders', 'update order status']);

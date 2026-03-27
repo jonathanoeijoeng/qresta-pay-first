@@ -22,4 +22,9 @@ class Branch extends Model
             ->withPivot('price', 'is_available')
             ->withTimestamps();
     }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
 }

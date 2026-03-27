@@ -18,6 +18,8 @@ class Order extends Model
         'branch_id',
         'total_amount',
         'tax_amount',
+        'tax_percentage',
+        'confirmed_at',
     ];
 
     protected static function booted()
@@ -36,5 +38,10 @@ class Order extends Model
     public function table()
     {
         return $this->belongsTo(Table::class);
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
     }
 }

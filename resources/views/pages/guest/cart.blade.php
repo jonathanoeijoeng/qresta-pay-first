@@ -105,8 +105,8 @@ new class extends Component
     #[Computed]
     public function taxAmount()
     {
-        $taxPercentage = GlobalSetting::where('key', 'tax_percentage')->value('value') ?? 10;         
-        return $this->subtotal * ($this->taxPercentage / 100);    }
+        return $this->subtotal * ($this->taxPercentage / 100); 
+    }
 
     #[Computed]
     public function grandTotal()
@@ -172,56 +172,79 @@ new class extends Component
 
     public function confirmOrder()
     {
-        // 1. Proteksi: Pastikan order ada dan punya item
-        if (!$this->order || $this->order->items->isEmpty()) {
+        // 1. Ambil ID dari Session (Paling Aman)
+        $orderId = session('active_order_id') ?? session('merging_order_id');
+
+        if (!$orderId) {
+            return $this->dispatch('notify', ['type' => 'error', 'message' => 'Sesi pesanan tidak ditemukan!']);
+        }
+
+        // 2. Refresh data Order dari DB
+        $order = Order::with('items')->find($orderId);
+
+        // 3. Proteksi: Pastikan order ada dan punya item
+        if (!$order || $order->items->isEmpty()) {
             return $this->dispatch('notify', ['type' => 'error', 'message' => 'Keranjang masih kosong!']);
         }
 
-        // 3. Update Status Order di Database
-        $this->order->update([
-            'status' => 'pending', // Pesanan masuk ke dapur
-            'total_amount' => $this->grandTotal,
-            'tax_amount' => $this->taxAmount,
-            'confirmed_at' => now(), // Tambahkan kolom ini di migrasi jika perlu
+        $newItems = $order->items->where('status', 'draft');
+
+        if ($newItems->isEmpty()) {
+            // Jika tidak ada item baru, langsung redirect saja ke halaman status
+            return redirect()->route('guest.order-status', $order->order_number);
+        }
+
+        foreach ($newItems as $item) {
+            $item->update(['status' => 'pending']);
+        }
+
+        // 4. Update Database
+        // Jika ini pesanan tambahan, status kembali ke 'pending' agar dapur tahu ada order baru
+
+        $order->update([
+            'status'         => 'pending', 
+            'total_amount'   => (int) $order->items->sum('subtotal') + ($this->taxPercentage / 100 * $order->items->sum('subtotal')),
+            'tax_amount'     => $this->taxPercentage / 100 * $order->items->sum('subtotal'),
+            'tax_percentage' => $this->taxPercentage, // Sesuaikan dengan setting Anda
+            'confirmed_at'   => now(),
         ]);
 
-        // 4. Broadcast order update to others via Reverb
-        broadcast(new OrderSent($this->order))->toOthers();
-
-        // 5. Bersihkan Session Order ID 
-        // Agar jika tamu scan lagi, mereka mulai dari awal (atau sesuai kebijakan resto)
-        session()->forget('active_order_id');
-
-        // 6. Redirect ke halaman Sukses/Status Pesanan
-        return redirect()->route('guest.order-status', ['order_number' => $this->order->order_number]);
+        // 5. Broadcast ke Reverb agar Layar Dapur & HP Tamu sinkron
+        broadcast(new OrderSent($order))->toOthers();
+        // 6. Redirect ke halaman status
+        return redirect()->route('guest.order-status', $order->order_number);
     }
 
     public function render()
     {
-        // 1. Ambil Order Utama
-        $order = \App\Models\Order::where('table_id', session('customer_table_id'))
-            ->where('status', 'draft')
-            ->first();
+        // 1. Ambil Order ID dari session (lebih akurat untuk merging)
+        $orderId = session('active_order_id') ?? session('merging_order_id');
 
-        $items = collect(); // Default kosong jika tidak ada order
+        $order = null;
+        $items = collect();
 
-        if ($order) {
-            // 2. Ambil Items dengan JOIN manual agar SORT alfabetis terkunci di DB
-            $items = \App\Models\OrderItem::query()
-                ->join('menus', 'order_items.menu_id', '=', 'menus.id')
-                ->where('order_items.order_id', $order->id)
-                ->select('order_items.*', 'menus.name as menu_name') // Ambil alias name untuk kepastian
-                ->orderBy('menus.name', 'asc') // A-Z
-                ->with('menu') // Tetap load relasi menu untuk gambar/info lainnya
-                ->get();
+        if ($orderId) {
+            // Ambil order tanpa mempedulikan status draft/unpaid
+            $order = \App\Models\Order::find($orderId);
+
+            if ($order) {
+                // 2. Ambil Items dengan JOIN manual (Logic Anda sudah bagus)
+                $items = \App\Models\OrderItem::query()
+                    ->join('menus', 'order_items.menu_id', '=', 'menus.id')
+                    ->where('order_items.order_id', $order->id)
+                    ->select('order_items.*', 'menus.name as menu_name')
+                    ->orderBy('menus.name', 'asc')
+                    ->with('menu')
+                    ->get();
+            }
         }
 
         return $this->view([
             'order' => $order,
-            'items' => $items, // Kita kirim variabel $items terpisah
+            'items' => $items,
         ])->layout('components.layouts.guest');
     }
-}
+    }
 ?>
 
 <div>
@@ -230,60 +253,113 @@ new class extends Component
             class="bg-white dark:bg-zinc-700 p-4 border-b border-zinc-100 dark:border-zinc-600 sticky top-0 z-10 flex items-center gap-4">
             <a href="{{ route('guest.menu') }}" class="p-2 bg-brand-600 rounded-full">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
-                    stroke="currentColor" class="w-5 h-5">
+                    stroke="currentColor" class="w-5 h-5 text-white">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
                 </svg>
             </a>
             <h1 class="text-lg text-zinc-800 dark:text-zinc-50 font-bold">Review Pesanan</h1>
         </header>
 
-        <main class="p-4 space-y-3 pb-32">
+        <main class="p-4 space-y-3 pb-12">
             @if($items->count() > 0)
-            @foreach($items as $item)
-            <div class="bg-white dark:bg-zinc-600 p-4 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc500 mb-3"
-                wire:key="item-row-{{ $item->id }}">
-                <div class="flex items-start gap-4">
-                    <div class="flex-1">
-                        <h3 class="font-bold text-zinc-900 dark:text-zinc-50 leading-tight">{{ $item->menu->name }}</h3>
+            {{-- BAGIAN 1: ITEM YANG AKAN DIPESAN (PENDING) --}}
+            @php $pendingItems = $items->where('status', 'draft'); @endphp
+            @if($pendingItems->isNotEmpty())
+            <div class="mb-6">
+                <p class="text-[10px] font-black uppercase tracking-widest text-brand-500 mb-3 px-2">Tambahan Baru</p>
+                @foreach($pendingItems as $item)
+                <div class="bg-white dark:bg-zinc-600 p-4 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-500 mb-3"
+                    wire:key="item-row-{{ $item->id }}">
+                    <div class="flex items-start gap-4">
+                        <div class="flex-1">
+                            <h3 class="font-bold text-zinc-900 dark:text-zinc-50 leading-tight">{{ $item->menu->name }}
+                            </h3>
 
-                        @if($item->notes)
-                        <button wire:click="editNote({{ $item->id }})" class="flex items-start gap-1.5 mt-1 group">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-                                class="w-3.5 h-3.5 text-zinc-400 mt-0.5 group-active:text-orange-500">
-                                <path
-                                    d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" />
-                            </svg>
-                            <span class="text-xs text-zinc-500 italic border-b border-dotted border-zinc-300">
-                                "{{ $item->notes }}"
-                            </span>
-                        </button>
-                        @else
-                        <button wire:click="editNote({{ $item->id }})"
-                            class="text-[10px] text-zinc-700 dark:text-zinc-100 font-bold mt-2">
-                            + tambah catatan
-                        </button>
-                        @endif
+                            {{-- Tombol Catatan: Aktif --}}
+                            @if($item->notes)
+                            <button wire:click="editNote({{ $item->id }})" class="flex items-start gap-1.5 mt-1 group">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+                                    class="w-3.5 h-3.5 text-zinc-400 mt-0.5 group-active:text-brand-500">
+                                    <path
+                                        d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" />
+                                </svg>
+                                <span
+                                    class="text-xs text-zinc-500 dark:text-zinc-50 italic border-b border-dotted border-zinc-300">"{{
+                                    $item->notes }}"</span>
+                            </button>
+                            @else
+                            <button wire:click="editNote({{ $item->id }})"
+                                class="text-[10px] text-zinc-500 dark:text-zinc-100 font-bold mt-2">+ tambah
+                                catatan</button>
+                            @endif
 
-                        <p class="text-brand-500 dark:text-brand-600 font-bold text-sm mt-2">
-                            IDR {{ number_format($item->price_at_order, 0, '.', ',') }}
-                        </p>
-                    </div>
+                            <p class="text-brand-500 dark:text-brand-600 font-bold text-sm mt-2">
+                                IDR {{ number_format($item->price_at_order, 0, '.', ',') }}
+                            </p>
+                        </div>
 
-                    <div
-                        class="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-500 px-3 py-1.5 rounded-full shadow-inner">
-                        <button wire:click="updateQty({{ $item->id }}, -1)"
-                            class="text-zinc-700 dark:text-zinc-100 font-black">-</button>
-                        <span class="text-xs font-bold w-4 text-center">{{ $item->quantity }}</span>
-                        <button wire:click="updateQty({{ $item->id }}, 1)"
-                            class="text-zinc-700 dark:text-zinc-100 font-black">+</button>
+                        {{-- Stepper Qty: Aktif --}}
+                        <div
+                            class="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-500 px-3 py-1.5 rounded-full shadow-inner border border-zinc-200">
+                            <button wire:click="updateQty({{ $item->id }}, -1)"
+                                class="text-zinc-700 dark:text-zinc-100 font-black px-1">-</button>
+                            <span class="text-xs font-bold w-4 text-center">{{ $item->quantity }}</span>
+                            <button wire:click="updateQty({{ $item->id }}, 1)"
+                                class="text-zinc-700 dark:text-zinc-100 font-black px-1">+</button>
+                        </div>
                     </div>
                 </div>
+                @endforeach
             </div>
-            @endforeach
+            @endif
+
+            {{-- BAGIAN 2: ITEM YANG SUDAH DIPESAN (SERVED/COOKING) --}}
+            @php $orderedItems = $items->where('status', '!=', 'draft'); @endphp
+            @if($orderedItems->isNotEmpty())
+            <div class="mb-6 opacity-60">
+                <p class="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-3 px-2">Sudah Dipesan
+                    Sebelumnya</p>
+                @foreach($orderedItems as $item)
+                <div class="bg-zinc-300 dark:bg-zinc-700 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-600 mb-3 grayscale-[0.5]"
+                    wire:key="item-row-{{ $item->id }}">
+                    <div class="flex items-start gap-4">
+                        <div class="flex-1">
+                            <h3 class="font-bold text-zinc-700 dark:text-zinc-200 leading-tight">{{ $item->menu->name }}
+                            </h3>
+
+                            {{-- Info Catatan: Hanya Teks (Tidak Bisa Klik Edit) --}}
+                            @if($item->notes)
+                            <div class="flex items-start gap-1.5 mt-1">
+                                <span class="text-[10px] text-zinc-700 italic dark:text-zinc-200">"{{ $item->notes
+                                    }}"</span>
+                            </div>
+                            @endif
+
+                            <div class="flex items-center gap-2 mt-2">
+                                <p class="text-zinc-700 font-bold text-xs dark:text-zinc-200">
+                                    IDR {{ number_format($item->price_at_order, 0, '.', ',') }}
+                                </p>
+                                <span
+                                    class="text-[9px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-black uppercase">Sudah
+                                    di Meja</span>
+                            </div>
+                        </div>
+
+                        {{-- Status Qty: Hanya Teks (Read-Only) --}}
+                        <div class="flex items-center px-4 py-1.5 rounded-full bg-zinc-200 dark:bg-zinc-600">
+                            <span class="text-xs font-black text-zinc-500">x{{ $item->quantity }}</span>
+                        </div>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+            @endif
+
             @else
+            {{-- EMPTY STATE --}}
             <div class="py-20 text-center">
                 <p class="text-zinc-400">Belum ada menu yang dipilih.</p>
-                <a href="{{ route('guest.menu') }}" class="text-orange-500 font-bold mt-2 inline-block">Kembali ke
+                <a href="{{ route('guest.menu') }}" class="text-brand-500 font-bold mt-2 inline-block">Kembali ke
                     Menu</a>
             </div>
             @endif
@@ -291,7 +367,7 @@ new class extends Component
 
         @if($this->order && $this->order->items->count() > 0)
         <div
-            class="fixed bottom-6 left-0 right-0 bg-white dark:bg-zinc-700 p-6 border-t border-zinc-100 dark:border-zinc-600 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-50 transition-all duration-300 ease-in-out">
+            class="sticky bottom-6 left-0 right-0 bg-white dark:bg-zinc-700 p-6 border-t border-zinc-100 dark:border-zinc-600 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-50 transition-all duration-300 ease-in-out">
 
             <div class="space-y-2 mb-2 border-b border-zinc-200 dark:border-zinc-300 pb-4">
                 <div class="flex justify-between items-center text-sm">
@@ -301,7 +377,9 @@ new class extends Component
                         ',') }}</span>
                 </div>
                 <div class="flex justify-between items-center text-sm">
-                    <span class="text-zinc-500 dark:text-zinc-100">PB1 {{ $this->taxPercentage }}%</span>
+                    <div class="flex gap-2 items-baseline"><span>PB1</span>
+                        <span>{{ number_format($this->taxPercentage, 0,',', ',') }}%</span>
+                    </div>
                     <span class="text-zinc-900 dark:text-zinc-50 font-medium">IDR {{ number_format($this->taxAmount, 0,
                         '.', ',')
                         }}</span>
@@ -331,7 +409,7 @@ new class extends Component
             <h3 class="text-lg font-black text-zinc-900 mb-2">Tambah/Ubah Catatan</h3>
 
             <textarea wire:model="editingNote"
-                class="w-full bg-zinc-50 border-none rounded-3xl p-5 text-sm focus:ring-2 focus:ring-orange-500 h-32 resize-none placeholder:text-zinc-300"
+                class="w-full bg-zinc-50 border-none rounded-3xl p-5 text-sm focus:ring-2 focus:ring-brand-500 h-32 resize-none placeholder:text-zinc-300"
                 placeholder="Contoh: Sangat pedas, pisah kuah..."></textarea>
 
             <div class="mt-8 flex gap-4">

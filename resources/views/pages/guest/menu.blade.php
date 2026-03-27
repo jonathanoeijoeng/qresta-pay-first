@@ -33,8 +33,28 @@ new class extends Component
         if (!session()->has('customer_table_id')) {
             return redirect()->route('invalid-access');
         }
+
+        if(session('active_order_id')) {
+            $sessionTableId = Order::find(session('active_order_id'))->table_id;
+            if($sessionTableId !== session('customer_table_id')) {
+                // dd('ID Meja Tidak Sesuai');
+                session()->forget([
+                    'active_order_id', 
+                    'merging_order_id',
+                ]);
+            }
+
+        } 
+
         $this->refreshCartSummary();
         $this->loadMenus();
+    }
+
+    public function cancelMerge() 
+    {
+        $orderNumber = Order::find(session('merging_order_id'))->order_number;
+        session()->forget('merging_order_id');
+        return redirect()->route('guest.order-status', $orderNumber);
     }
 
     public function openNoteModal($menuId)
@@ -46,12 +66,11 @@ new class extends Component
     
     public function loadMenus()
     {
-        $tableId = session('customer_table_id');
-        $table = Table::find($tableId);
+        $table = Table::find(session('customer_table_id'));
         $this->branchId = $table->branch_id;      
+        $this->tableNumber = $table->number;
         $branch = Branch::find($this->branchId);
         $this->branchName = $branch->name;
-        $this->tableNumber = $table->number;
         $this->menus = $branch->menus()->wherePivot('is_available', true)->get();
     }
 
@@ -66,17 +85,23 @@ new class extends Component
         }
     }
 
-    public function refreshCartSummary(): void
+    public function refreshCartSummary()
     {
-        $order = \App\Models\Order::where('table_id', session('customer_table_id'))
-            ->where('status', 'draft')
-            ->where('payment_status', 'unpaid')
-            ->first();
+        $orderId = session('active_order_id') ?? session('merging_order_id');
 
-        if ($order) {
-            // Menghitung total quantity dari semua item di order tersebut
-            $this->cartCount = $order->items()->sum('quantity');
-            $this->cartTotal = $order->total_amount;
+        if ($orderId) {
+            $order = Order::with('items')->find($orderId);
+
+            if ($order) {
+                // Hitung jumlah item unik atau total quantity
+                $this->cartCount = $order->items->sum('quantity');
+                
+                // Ambil subtotal (sebelum pajak) untuk tampilan ringkas
+                $this->cartTotal = $order->items->sum('subtotal');
+            } else {
+                $this->cartCount = 0;
+                $this->cartTotal = 0;
+            }
         } else {
             $this->cartCount = 0;
             $this->cartTotal = 0;
@@ -92,23 +117,85 @@ new class extends Component
         }
 
         $tableId = session('customer_table_id');
+        $mergingOrderId = session('merging_order_id');
         
-        $orderNumber = 'QRS-' . date('Ymd') . '-' . str_pad($tableId, 3, '0', STR_PAD_LEFT);
+        // --- KOREKSI LOGIKA DISINI ---
+        if ($mergingOrderId) {
+            $order = Order::find($mergingOrderId);
+            
+            // Jika order merging tidak valid/sudah dibayar, bersihkan session & buat draft
+            if (!$order || $order->payment_status !== 'unpaid') {
+                session()->forget('merging_order_id');
+                $order = $this->getOrCreateDraftOrder($tableId);
+            }
+        } else {
+            // Jika tidak merging, gunakan logic draft biasa
+            $order = $this->getOrCreateDraftOrder($tableId);
+        }
 
-        // 1. Ambil harga terbaru dari join branch_menu
+        // 1. Ambil harga terbaru
         $menuData = \App\Models\Menu::query()
             ->join('branch_menu', 'menus.id', '=', 'branch_menu.menu_id')
             ->where('menus.id', $this->selectedMenu->id)
             ->where('branch_menu.branch_id', $this->branchId)
-            ->select('branch_menu.price')
+            ->select('branch_menu.price')   
             ->first();
 
         if (!$menuData) return;
-
         $price = (int) $menuData->price;
 
-        // 2. Cari atau Buat Order
-        $order = \App\Models\Order::firstOrCreate(
+        // Simpan active_order_id untuk kebutuhan floating cart/summary
+        session(['active_order_id' => $order->id]);
+
+        // 2. Tambah atau Update Item
+        $existingItem = $order->items()
+            ->where('menu_id', $this->selectedMenu->id)
+            ->where('notes', $this->tempNote ?: null)
+            ->where('status', 'draft')
+            ->first();
+
+        if ($existingItem) {
+            $newQty = $existingItem->quantity + 1;
+            $existingItem->update([
+                'quantity' => $newQty,
+                'subtotal' => $newQty * $existingItem->price_at_order
+            ]);
+        } else {
+            $order->items()->create([
+                'menu_id' => $this->selectedMenu->id,
+                'quantity' => 1,
+                'price_at_order' => $price,
+                'subtotal' => $price,
+                'notes' => $this->tempNote ?: null,
+                'status' => 'draft'
+            ]);
+        }
+
+        // 3. Update total_amount & reset status jika perlu
+        // Jika order yang sudah 'completed' ditambah item baru, koki harus tahu
+        $updateData = [
+            'total_amount' => (int) $order->items()->sum('subtotal')
+        ];
+        
+        if ($order->status === 'completed') {
+            $updateData['status'] = 'pending'; // Reset agar koki lihat ada tambahan
+        }
+
+        $this->updateOrderTotals($order);
+
+        // 4. Cleanup & Refresh
+        $this->reset(['showNoteModal', 'selectedMenu', 'tempNote']);
+        $this->refreshCartSummary();
+    }
+
+    /**
+     * Helper untuk mendapatkan atau membuat Order Draft
+     */
+    private function getOrCreateDraftOrder($tableId)
+    {
+        $orderNumber = 'QRS-' . date('Ymd') . '-' . str_pad($tableId, 3, '0', STR_PAD_LEFT);
+        
+        return \App\Models\Order::firstOrCreate(
             [
                 'branch_id' => $this->branchId,
                 'table_id' => $tableId,
@@ -118,43 +205,22 @@ new class extends Component
             [
                 'order_number' => $orderNumber,
                 'total_amount' => 0,
-                'tax_amount' => 0
+                'tax_amount' => 0,
+                'tax_percentage' => 11 // Misal 11%
             ]
         );
+    }
 
-        session(['active_order_id' => $order->id]);
+    private function updateOrderTotals($order)
+    {
+        $subtotal = (int) $order->items()->sum('subtotal');
+        // Jika tax_percentage Anda menggunakan bigInt/Decimal, sesuaikan rumusnya
+        $tax = ($subtotal * $order->tax_percentage) / 100;
 
-        $existingItem = $order->items()
-            ->where('menu_id', $this->selectedMenu->id)
-            ->where('notes', $this->tempNote ?: null) // Cek kesamaan catatan
-            ->first();
-
-        if ($existingItem) {
-            // Jika sama persis (Menu & Note), baru boleh tambah Quantity
-            $newQty = $existingItem->quantity + 1;
-            $existingItem->update([
-                'quantity' => $newQty,
-                'subtotal' => $newQty * $existingItem->price_at_order
-            ]);
-        } else {
-            // Jika Note berbeda (atau belum ada), buat baris BARU
-            $order->items()->create([
-                'menu_id' => $this->selectedMenu->id,
-                'quantity' => 1,
-                'price_at_order' => $price,
-                'subtotal' => $price,
-                'notes' => $this->tempNote ?: null,
-            ]);
-        }
-
-        // 4. Update total_amount di orders
         $order->update([
-            'total_amount' => (int) $order->items()->sum('subtotal')
+            'total_amount' => $subtotal + (int)$tax,
+            // Tambahkan tax_amount jika Anda punya kolomnya
         ]);
-
-        // 5. Cleanup & Refresh
-        $this->reset(['showNoteModal', 'selectedMenu', 'tempNote']);
-        $this->refreshCartSummary();
     }
 
     public function render()
@@ -214,7 +280,33 @@ new class extends Component
                     Meja #{{ $tableNumber }}
                 </flux:badge>
             </header>
-
+            @if(session('merging_order_id'))
+            @php
+            // Ambil data order dari database berdasarkan session
+            $mergingOrder = \App\Models\Order::find(session('merging_order_id'));
+            @endphp
+            <div
+                class="bg-brand-50 border border-brand-200 rounded-2xl p-3 flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-2">
+                <div class="flex items-center gap-2">
+                    <div class="bg-brand-500 p-1.5 rounded-full">
+                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4">
+                            </path>
+                        </svg>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-[10px] text-brand-600 font-black uppercase tracking-widest leading-none">Mode
+                            Tambah Pesanan</span>
+                        <span class="text-[11px] text-brand-900 font-bold leading-tight">Order {{
+                            $mergingOrder->order_number }}</span>
+                    </div>
+                </div>
+                <button wire:click="cancelMerge"
+                    class="bg-white px-3 py-1.5 rounded-xl text-[10px] font-black text-brand-600 border border-brand-200 active:scale-95 transition-all shadow-sm">
+                    BATALKAN
+                </button>
+            </div>
+            @endif
         </div>
         {{-- Search Bar --}}
         <flux:input wire:model.live.debounce.300ms="search" placeholder="Cari menu favorit..."
@@ -329,14 +421,14 @@ new class extends Component
             </div>
 
             <textarea wire:model="tempNote" placeholder="Contoh: Tidak pakai sambal, ekstra bawang goreng..."
-                class="w-full bg-zinc-100 text-black border-none rounded-2xl p-4 text-base focus:ring-2 focus:ring-orange-500 h-32 resize-none"></textarea>
+                class="w-full bg-zinc-100 text-black border-none rounded-2xl p-4 text-base focus:ring-2 focus:ring-brand-500 h-32 resize-none"></textarea>
 
             <div class="mt-6 flex gap-3">
                 <button wire:click="$set('showNoteModal', false)" class="flex-1 py-4 text-zinc-500 font-bold">
                     Batal
                 </button>
                 <button wire:click="addToCartWithNote"
-                    class="flex-[2] bg-orange-500 text-white py-4 rounded-2xl font-bold shadow-lg shadow-orange-500/30 active:scale-95 transition-all">
+                    class="flex-[2] bg-brand-500 text-white py-4 rounded-2xl font-bold shadow-lg shadow-brand-500/30 active:scale-95 transition-all">
                     Tambah ke Pesanan
                 </button>
             </div>

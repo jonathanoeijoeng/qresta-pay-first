@@ -14,15 +14,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');
 });
 
-Route::middleware(['auth', 'can:qr-code'])->group(function () {
-    Route::livewire('/qr-code', 'pages::qr-code')->name('qr-code');
-});
+Route::middleware(['auth', 'can:qr-code'])->group(function () {});
 
 Route::get('/order', function () {
     return view('order');
 })->name('order.index');
 
 Route::middleware(['auth', 'role:super_admin|admin_cabang'])->group(function () {
+    Route::livewire('/qr-code', 'pages::qr-code')->name('qr-code');
     Route::livewire('/admin/menu-management', 'pages::admin.menu-management')->name('admin.menu-management');
     Route::livewire('/admin/branch-menu-management', 'pages::admin.branch-menu-management')->name('admin.branch-menu-management');
     Route::livewire('/admin/user-management', 'pages::admin.user-management')->name('admin.user-management');
@@ -36,6 +35,12 @@ Route::middleware(['auth', 'role:super_admin|admin_cabang|kitchen'])->group(func
     });
 });
 
+Route::middleware(['auth', 'role:super_admin|admin_cabang|cashier'])->group(function () {
+    Route::prefix('cashier')->name('cashier.')->group(function () {
+        Route::livewire('/', 'pages::cashier.index')->name('index');
+    });
+});
+
 // --- ROUTE TAMU (Non-Auth / Publik) ---
 // 1. Jalur masuk dari Scan QR
 Route::get('/s/{token}', function ($token) {
@@ -45,9 +50,8 @@ Route::get('/s/{token}', function ($token) {
     if (!$table) {
         return redirect()->route('invalid-access');
     }
-
     session([
-        'customer_table_id' => $table->id,
+        'customer_table_id' => $table->table_id,
     ]);
 
     // Redirect ke halaman menu

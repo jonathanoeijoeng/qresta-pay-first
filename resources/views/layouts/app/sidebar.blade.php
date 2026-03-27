@@ -27,6 +27,10 @@
                     :current="request()->routeIs('kitchen.index')" wire:navigate>
                     {{ __('Kitchen') }}
                 </flux:sidebar.item>
+                <flux:sidebar.item icon="banknotes" :href="route('cashier.index')"
+                    :current="request()->routeIs('cashier.index')" wire:navigate>
+                    {{ __('Cashier') }}
+                </flux:sidebar.item>
 
                 @can('change menu')
                 <flux:navlist>
@@ -155,6 +159,24 @@
     {{ $slot }}
     <x-toaster />
     @fluxScripts
+    <script>
+        window.addEventListener('play-sound', event => {
+        // Daftar semua suara di satu tempat (Centralized)
+        const sounds = {
+            'kitchen': '/sounds/notification.mp3',
+            'guest': '/sounds/notification.mp3',
+            'cashier': '/sounds/notification.mp3',
+            'default': '/sounds/notification.mp3'
+        };
+
+        const soundPath = sounds[event.detail.type] || sounds['default'];
+        const audio = new Audio(soundPath);
+        
+        audio.play().catch(error => {
+            console.log("Autoplay dicegah. Kasir harus klik layar dulu.");
+        });
+    });
+    </script>
 </body>
 
 </html>

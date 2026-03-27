@@ -52,11 +52,11 @@ new class extends Component
 
                 <div class="flex gap-2">
                     <button wire:click="updateSetting('order_workflow', 'pay_first')"
-                        class="flex-1 py-2 rounded-xl font-bold text-sm transition {{ $settings['order_workflow'] == 'pay_first' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-400' }}">
+                        class="flex-1 py-2 rounded-xl font-bold text-sm transition {{ $settings['order_workflow'] == 'pay_first' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-400' }}">
                         PAY FIRST
                     </button>
                     <button wire:click="updateSetting('order_workflow', 'serve_first')"
-                        class="flex-1 py-2 rounded-xl font-bold text-sm transition {{ $settings['order_workflow'] == 'serve_first' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-400' }}">
+                        class="flex-1 py-2 rounded-xl font-bold text-sm transition {{ $settings['order_workflow'] == 'serve_first' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-400' }}">
                         SERVE FIRST
                     </button>
                 </div>
@@ -73,7 +73,7 @@ new class extends Component
                 <div class="relative">
                     <input type="number" wire:change="updateSetting('tax_percentage', $event.target.value)"
                         value="{{ $settings['tax_percentage'] }}"
-                        class="w-full bg-gray-50 border-none rounded-xl font-bold text-lg focus:ring-orange-500">
+                        class="w-full bg-gray-50 border-none rounded-xl font-bold text-lg focus:ring-brand-500">
                     <span class="absolute right-4 top-2 text-gray-400 font-bold">%</span>
                 </div>
             </div>
@@ -85,8 +85,8 @@ new class extends Component
                 <div class="flex items-center gap-4">
                     <input type="range" min="5" max="60" step="5"
                         wire:change="updateSetting('tat_kitchen', $event.target.value)"
-                        value="{{ $settings['tat_kitchen'] }}" class="flex-1 accent-orange-500">
-                    <span class="font-black text-xl text-orange-600 w-12">{{ $settings['tat_kitchen'] }}m</span>
+                        value="{{ $settings['tat_kitchen'] }}" class="flex-1 accent-brand-500">
+                    <span class="font-black text-xl text-brand-600 w-12">{{ $settings['tat_kitchen'] }}m</span>
                 </div>
             </div>
         </div>

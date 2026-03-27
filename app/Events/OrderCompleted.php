@@ -7,15 +7,15 @@ use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
 
-
-class OrderUpdated implements ShouldBroadcastNow
+class OrderCompleted implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
+
     public $order;
     /**
      * Create a new event instance.
@@ -33,7 +33,7 @@ class OrderUpdated implements ShouldBroadcastNow
     public function broadcastOn(): array
     {
         return [
-            new Channel('order.' . $this->order->order_number),
+            new PrivateChannel('order-completed-branch.' . $this->order->branch_id),
         ];
     }
 
@@ -42,7 +42,7 @@ class OrderUpdated implements ShouldBroadcastNow
         return [
             'id' => $this->order->id,
             'status' => $this->order->status,
-            // data lainnya
+            'table_number' => $this->order->table->number ?? 'N/A',
         ];
     }
 }

@@ -27,8 +27,11 @@ return new class extends Migration
             $table->string('payment_method')->nullable(); // Cash, QRIS, etc.
 
             $table->bigInteger('total_amount'); // Gunakan integer (IDR) tanpa koma di DB
+            $table->decimal('tax_percentage', 5, 2);
             $table->bigInteger('tax_amount'); // Gunakan integer (IDR) tanpa koma di DB
             $table->text('notes')->nullable(); // Catatan tambahan dari tamu (e.g. "Tanpa bawang")
+            $table->timestamp('confirmed_at')->nullable();
+            $table->timestamp('paid_at')->nullable();
 
             $table->timestamps();
         });
