@@ -66,7 +66,6 @@ new class extends Component
         $order->update([
             'payment_status' => 'paid',
             'payment_method' => $method,
-            'status'         => 'completed', // Pastikan order tertutup (Header)
             'paid_at'        => now(),
         ]);
 
@@ -77,17 +76,12 @@ new class extends Component
         // 5. Broadcast ke Reverb
         // Tamu akan melihat layar "Terima Kasih" atau "Sudah Dibayar" secara real-time
         broadcast(new \App\Events\OrderUpdated($order))->toOthers();
-
+        
         // 6. Notifikasi Sukses
         $this->dispatch('toast', 
             type: 'success', 
             text: "Order #{$order->order_number} sudah dibayar"
         );
-
-        // Jika ini adalah order yang sedang aktif di session kasir, bersihkan
-        if (session('active_order_id') == $orderId) {
-            session()->forget(['active_order_id', 'merging_order_id', 'customer_table_id']);
-        }; 
     }
 
    public function render()
@@ -131,7 +125,7 @@ new class extends Component
         });
 
         return $this->view([
-            'activeOrders' => $activeOrders
+            'activeOrders' => $activeOrders,
         ])->title('Cashier - Dashboard');
     }
 };
@@ -166,6 +160,9 @@ new class extends Component
             @endif
         </div>
     </div>
+    <p>ID Order Aktif: {{ session('active_order_id') }}</p>
+    <p>ID Order Aktif: {{ session('active_table_id') }}</p>
+    <p>ID Order Aktif: {{ session('merging_order_id') }}</p>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         @foreach($activeOrders as $order)
         <div class="bg-white border-2 border-zinc-100 rounded-3xl p-5 shadow-sm flex flex-col justify-between">
@@ -206,7 +203,7 @@ new class extends Component
                 <div x-data="{ showPayment: false }">
                     <button x-show="!showPayment" @click="showPayment = true" class="w-full bg-brand-600 text-white py-2 rounded-xl font-bold disabled:opacity-50
                         cursor-pointer disabled:cursor-not-allowed transition-all" @disabled($order->status !==
-                        'completed served')
+                        'completed-served')
                         >
                         Bayar Sekarang
                     </button>

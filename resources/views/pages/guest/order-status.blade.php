@@ -56,9 +56,10 @@ new class extends Component
     {
         $this->order->refresh();
         if ($this->order->payment_status === 'paid') {
-        // Memicu Alpine.js untuk menampilkan ucapan terima kasih
-        $this->dispatch('order-paid-success');
-    }
+            // Memicu Alpine.js untuk menampilkan ucapan terima kasih
+            session()->forget(['active_order_id', 'customer_table_id', 'merging_order_id']);
+            $this->dispatch('order-paid-success');
+        }
     }
 
     public function generateQrCode()
@@ -314,7 +315,7 @@ new class extends Component
      }" x-on:order-paid-success.window="showThanks = true" class="relative">
 
         <template x-if="showThanks">
-            <div class="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-zinc-900/90 backdrop-blur-md">
+            <div class="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-zinc-800/70 backdrop-blur-md">
                 <div
                     class="bg-white dark:bg-zinc-800 rounded-[3rem] p-10 text-center shadow-2xl border-4 border-brand-500">
 
@@ -328,8 +329,9 @@ new class extends Component
 
                     <h2 class="text-3xl font-black text-zinc-800 dark:text-zinc-100 mb-2">Lunas!</h2>
                     <p class="text-zinc-500 dark:text-zinc-400 mb-8 leading-relaxed">
-                        Terima kasih, {{ $order->customer_name ?? 'Pelanggan setia' }} yang terhormat!<br>
-                        Pembayaran Anda telah kami terima.
+                        {{ $order->customer_name ?? 'Pelanggan setia' }} yang terhormat!<br>
+                        Terima kasih atas pembayaran anda.
+                        Kami menantikan kunjungan and
                     </p>
 
                     <p class="mt-10 text-[10px] text-zinc-400 italic">Sesi Anda telah berakhir. Silakan tutup halaman
