@@ -14,11 +14,13 @@
         "laravel/fortify": "^1.34",
         "laravel/framework": "^13.0",
         "laravel/reverb": "^1.0",
+        "laravel/sanctum": "^4.0",
         "laravel/tinker": "^3.0",
         "livewire/flux": "^2.12.0",
         "livewire/livewire": "^4.1",
         "opcodesio/log-viewer": "^3.24",
-        "spatie/laravel-permission": "^7.2"
+        "spatie/laravel-permission": "^7.2",
+        "xendit/xendit-php": "^7.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.24",

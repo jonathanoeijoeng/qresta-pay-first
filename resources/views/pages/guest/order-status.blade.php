@@ -9,6 +9,8 @@ use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer; 
 use Livewire\Attributes\On; 
 use App\Events\OrderUpdated; 
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 new class extends Component
 {
@@ -75,7 +77,47 @@ new class extends Component
 
         // 3. Generate SVG berdasarkan nomor pesanan
         $this->qrCodeSvg = $writer->writeString($this->order->order_number);
-    }  
+    }
+
+    public function processPayment()
+    {
+        try {
+            $apiKey = config('services.xendit.key');
+            
+            // Kirim request ke API Xendit secara manual
+            // withBasicAuth akan otomatis melakukan Base64 encoding {key}:
+            $response = Http::withBasicAuth($apiKey, '')
+                ->post('https://api.xendit.co/v2/invoices', [
+                    'external_id' => (string) $this->order->order_number,
+                    'description' => "Pembayaran QResta #{$this->order->order_number} - Meja {$this->order->table->number}",
+                    'amount'      => (double) $this->order->total_amount,
+                    'currency'    => 'IDR',
+                    'customer'    => [
+                        'given_names' => $this->order->customer_name ?? "Tamu Meja " . $this->order->table->number,
+                    ],
+                    'success_redirect_url' => route('guest.order-status', $this->order->order_number),
+                    'failure_redirect_url' => route('guest.order-status', $this->order->order_number),
+                ]);
+
+            if ($response->failed()) {
+                throw new \Exception($response->body());
+            }
+
+            $invoice = $response->json();
+
+            // Update database Intel NUC Anda
+            $this->order->update([
+                'payment_token' => $invoice['id']
+            ]);
+
+            // Redirect ke portal pembayaran Xendit
+            return redirect()->away($invoice['invoice_url']);
+
+        } catch (\Exception $e) {
+            Log::error('Xendit Manual HTTP Error: ' . $e->getMessage());
+            $this->dispatch('toast', type: 'error', text: 'Gagal membuat tagihan. Silakan cek koneksi atau API Key.');
+        }
+    }
 
 
     #[Layout('components.layouts.guest')]
@@ -130,9 +172,10 @@ new class extends Component
                 <p class="text-zinc-500 text-sm mb-6">Bagaimana Anda ingin menyelesaikan pembayaran?</p>
 
                 <div class="grid grid-cols-1 gap-4">
-                    <button wire:click="processPayment('midtrans')"
+                    <button wire:click="processPayment('xendit')"
                         class="flex items-center gap-4 p-4 border-2 border-zinc-100 rounded-2xl hover:border-brand-500 transition-all text-left">
                         <div class="bg-blue-100 p-3 rounded-xl text-blue-600">
+                            {{-- Icon Card --}}
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z">
@@ -140,9 +183,8 @@ new class extends Component
                             </svg>
                         </div>
                         <div>
-                            <span class="block font-bold text-zinc-800">Bayar di Sini</span>
-                            <span class="text-xs text-zinc-400 text-slate-500">QRIS, Virtual Account, Kartu
-                                Kredit</span>
+                            <span class="block font-bold text-zinc-800">Bayar Mandiri (Online)</span>
+                            <span class="text-xs text-zinc-400 text-slate-500">QRIS, ShopeePay, OVO, Virtual Account</span>
                         </div>
                     </button>
 

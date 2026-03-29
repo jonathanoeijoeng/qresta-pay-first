@@ -15,6 +15,7 @@ new class extends Component
     public $selectedMethod;
     public $selectedOrderTotal;
     public $message = '';
+    public $order;
     
     public function getListeners()
     {
