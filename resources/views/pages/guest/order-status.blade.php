@@ -205,8 +205,8 @@ new class extends Component
                             </svg>
                         </div>
                         <div>
-                            <span class="block font-bold text-zinc-800">Bayar Mandiri (Online)</span>
-                            <span class="text-xs text-zinc-400 text-slate-500">QRIS, Kartu Kredit, Virtual Account</span>
+                            <span class="block font-bold text-zinc-800">Bayar di Meja (Online)</span>
+                            <span class="text-xs text-slate-500">QRIS, Kartu Kredit, Virtual Account</span>
                         </div>
                     </button>
 
