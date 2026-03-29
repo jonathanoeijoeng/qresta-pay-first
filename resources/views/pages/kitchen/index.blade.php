@@ -99,7 +99,7 @@ new class extends Component
 
         $order->update(['status' => $newOrderStatus]);
 
-        broadcast(new OrderUpdated($order))->toOthers();
+        broadcast(new OrderUpdated($order));
         broadcast(new OrderSent($order))->toOthers();
     }
 

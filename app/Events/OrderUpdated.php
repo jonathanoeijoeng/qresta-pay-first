@@ -37,12 +37,12 @@ class OrderUpdated implements ShouldBroadcastNow
         ];
     }
 
-    public function broadcastWith(): array
-    {
-        return [
-            'id' => $this->order->id,
-            'status' => $this->order->status,
-            // data lainnya
-        ];
-    }
+    // public function broadcastWith(): array
+    // {
+    //     return [
+    //         'id' => $this->order->id,
+    //         'status' => $this->order->status,
+    //         // data lainnya
+    //     ];
+    // }
 }

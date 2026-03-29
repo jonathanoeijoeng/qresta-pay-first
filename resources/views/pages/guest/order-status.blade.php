@@ -25,8 +25,20 @@ new class extends Component
         $this->order = Order::with(['items.menu','table'])
             ->where('order_number', $order_number)
             ->firstOrFail();
+        $this->checkIfPaid();
         $this->generateQrCode();
 
+    }
+
+    public function checkIfPaid()
+    {
+        if ($this->order->payment_status === 'paid') {
+            // Hapus session agar tidak bisa pesan lagi tanpa scan QR baru
+            session()->forget(['active_order_id', 'customer_table_id']);
+            
+            // Memicu Alpine.js untuk menampilkan modal sukses
+            $this->dispatch('order-paid-success');
+        }
     }
 
     public function checkAndMergeOrder()
@@ -55,9 +67,11 @@ new class extends Component
     }
 
     public function refreshStatus()
-    {
+    {   
         $this->order->refresh();
+        Log::info('pengen tahu isi $order di order-status'. $this->order);
         if ($this->order->payment_status === 'paid') {
+            dd('terimakasih');
             // Memicu Alpine.js untuk menampilkan ucapan terima kasih
             session()->forget(['active_order_id', 'customer_table_id', 'merging_order_id']);
             $this->dispatch('order-paid-success');
@@ -165,6 +179,7 @@ new class extends Component
                 class="font-bold text-brand-600 dark:text-brand-600">#{{
                 $order->order_number }}</span>
         </p>
+        Session: {{ session('customer_table_id')}}
         @if($order->status == 'completed-served')
         <div class="mt-8">
             <button wire:click="$set('showPaymentModal', true)"
@@ -380,8 +395,8 @@ new class extends Component
                     <h2 class="text-3xl font-black text-zinc-800 dark:text-zinc-100 mb-2">Lunas!</h2>
                     <p class="text-zinc-500 dark:text-zinc-400 mb-8 leading-relaxed">
                         {{ $order->customer_name ?? 'Pelanggan setia' }} yang terhormat!<br>
-                        Terima kasih atas pembayaran anda.
-                        Kami menantikan kunjungan and
+                        Terima kasih atas pembayaran anda.<br>
+                        Kami menantikan kunjungan anda kembali
                     </p>
 
                     <p class="mt-10 text-[10px] text-zinc-400 italic">Sesi Anda telah berakhir. Silakan tutup halaman

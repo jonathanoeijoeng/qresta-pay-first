@@ -44,7 +44,6 @@ class XenditCallbackController extends Controller
 
         // 4. Proses Jika Pembayaran Berhasil
         if ($status === 'PAID' || $status === 'SETTLED') {
-            
             // Cek agar tidak memproses dua kali (Idempotency)
             if ($order->payment_status !== 'paid') {
                 
@@ -60,7 +59,7 @@ class XenditCallbackController extends Controller
                 broadcast(new OrderUpdated($order))->toOthers();
                 broadcast(new OrderSent($order))->toOthers(); 
 
-                Log::info("Xendit Callback: Order #{$orderNumber} marked as PAID.");
+                // Log::info("Xendit Callback: Order #{$orderNumber} marked as PAID.");
             }
         }
 
