@@ -56,7 +56,6 @@ class XenditCallbackController extends Controller
                 // 5. Broadcast ke Reverb/Echo (Agar UI Tamu di HP otomatis berubah)
                 // Ini akan memicu listener "refreshStatus" di Livewire Jonathan
                 // event(new OrderUpdated($order));
-                dd($order);
                 broadcast(new OrderUpdated($order))->toOthers();
                 broadcast(new OrderSent($order))->toOthers(); 
 
