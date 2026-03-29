@@ -179,7 +179,6 @@ new class extends Component
                 class="font-bold text-brand-600 dark:text-brand-600">#{{
                 $order->order_number }}</span>
         </p>
-        Session: {{ session('customer_table_id')}}
         @if($order->status == 'completed-served')
         <div class="mt-8">
             <button wire:click="$set('showPaymentModal', true)"
