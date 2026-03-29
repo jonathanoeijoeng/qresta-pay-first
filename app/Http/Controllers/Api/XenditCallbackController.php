@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
-use App\Events\OrderUpdated; // Pastikan nama event sesuai dengan yang ada di listener Livewire Anda
+use App\Events\OrderUpdated;
+use App\Events\OrderSent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -12,8 +13,6 @@ class XenditCallbackController extends Controller
 {
     public function handle(Request $request)
     {
-        dd('callback');
-        
         // 1. Verifikasi Token Webhook (Sangat Penting!)
         $callbackToken = config('services.xendit.webhook_token');
         

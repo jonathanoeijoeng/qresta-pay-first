@@ -404,8 +404,8 @@ new class extends Component
     </div>
     @endif
     @if($showNoteModal)
-    <div class="fixed inset-0 bg-black/50 z-[10000] flex items-end sm:items-center justify-center p-0 sm:p-4">
-        <div class="bg-white dark:bg-zinc-300 w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 
+    <div class="fixed inset-0 bg-black/50 z-[10000] flex items-center sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white dark:bg-zinc-300 w-full max-w-md rounded-3xl sm:rounded-3xl p-6 
             shadow-2xl animate-in slide-in-from-bottom duration-300 
             overflow-x-hidden border-none outline-none">
             <div class="flex justify-between items-start mb-4">

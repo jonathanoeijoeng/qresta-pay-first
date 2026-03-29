@@ -161,9 +161,6 @@ new class extends Component
             @endif
         </div>
     </div>
-    <p>ID Order Aktif: {{ session('active_order_id') }}</p>
-    <p>ID Order Aktif: {{ session('active_table_id') }}</p>
-    <p>ID Order Aktif: {{ session('merging_order_id') }}</p>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         @foreach($activeOrders as $order)
         <div class="bg-white border-2 border-zinc-100 rounded-3xl p-5 shadow-sm flex flex-col justify-between">
