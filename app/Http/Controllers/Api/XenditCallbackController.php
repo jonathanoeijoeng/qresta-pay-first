@@ -12,6 +12,8 @@ class XenditCallbackController extends Controller
 {
     public function handle(Request $request)
     {
+        dd('callback');
+        
         // 1. Verifikasi Token Webhook (Sangat Penting!)
         $callbackToken = config('services.xendit.webhook_token');
         
