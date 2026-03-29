@@ -92,6 +92,14 @@ new class extends Component
                     'description' => "Pembayaran QResta #{$this->order->order_number} - Meja {$this->order->table->number}",
                     'amount'      => (double) $this->order->total_amount,
                     'currency'    => 'IDR',
+                    'payment_methods' => [
+                        'QRIS',         // Wajib ada untuk kemudahan scan
+                        'CREDIT_CARD',  // Mengaktifkan opsi Kartu Kredit (Visa/Mastercard/JCB)
+                        'BCA',          // Virtual Account tetap disarankan sebagai cadangan
+                        'BNI',
+                        'BRI',
+                        'MANDIRI'
+                    ],
                     'customer'    => [
                         'given_names' => $this->order->customer_name ?? "Tamu Meja " . $this->order->table->number,
                     ],
