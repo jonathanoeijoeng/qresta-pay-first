@@ -207,7 +207,7 @@ new class extends Component
                         </div>
                         <div>
                             <span class="block font-bold text-zinc-800">Bayar Mandiri (Online)</span>
-                            <span class="text-xs text-zinc-400 text-slate-500">QRIS, ShopeePay, OVO, Virtual Account</span>
+                            <span class="text-xs text-zinc-400 text-slate-500">QRIS, Kartu Kredit, Virtual Account</span>
                         </div>
                     </button>
 
