@@ -193,8 +193,8 @@ new class extends Component
                 <p class="text-zinc-500 text-sm mb-6">Bagaimana Anda ingin menyelesaikan pembayaran?</p>
 
                 <div class="grid grid-cols-1 gap-4">
-                    <button wire:click="processPayment('xendit')"
-                        class="flex items-center gap-4 p-4 border-2 border-zinc-100 rounded-2xl hover:border-brand-500 transition-all text-left">
+                    <button wire:click="processPayment('xendit')" wire:loading.attr="disabled"
+                        class="flex items-center gap-4 p-4 border-2 border-zinc-100 rounded-2xl hover:border-brand-600 hover:bg-brand-200 active:bg-brand-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-left">
                         <div class="bg-blue-100 p-3 rounded-xl text-blue-600">
                             {{-- Icon Card --}}
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -209,8 +209,8 @@ new class extends Component
                         </div>
                     </button>
 
-                    <button wire:click="$set('showQrModal', true)"
-                        class="flex items-center gap-4 p-4 border-2 border-zinc-100 rounded-2xl hover:border-brand-500 transition-all text-left">
+                    <button wire:click="$set('showQrModal', true)" wire:loading.attr="disabled"
+                        class="flex items-center gap-4 p-4 border-2 border-zinc-100 rounded-2xl hover:border-brand-500 hover:bg-brand-200 active:bg-brand-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-left">
                         <div class="bg-green-100 p-3 rounded-xl text-green-600">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
