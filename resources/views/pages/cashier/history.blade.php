@@ -123,6 +123,7 @@ new class extends Component
                     <th class="p-3 uppercase text-sm font-bold">Waktu</th>
                     <th class="p-3 uppercase text-sm font-bold">No. Order</th>
                     <th class="p-3 uppercase text-sm font-bold">Meja</th>
+                    <th class="p-3 uppercase text-sm font-bold">Tipe</th>
                     <th class="p-3 uppercase text-sm font-bold">Metode</th>
                     <th class="p-3 uppercase text-sm font-bold text-right">Total</th>
                 </tr>
@@ -136,10 +137,38 @@ new class extends Component
                     <td class="p-3 font-mono font-bold">{{ $order->order_number }}</td>
                     <td class="p-3">Meja {{ $order->table_id }}</td>
                     <td class="p-3">
+                        @php
+                        // Tentukan warna berdasarkan type
+                        $isOnline = $order->payment_type === 'Online';
+
+                        // Mapping nama yang enak dibaca tamu/kasir
+                        $displayType = $isOnline ? 'Xendit (Online)' : 'Kasir (Manual)';
+
+                        // Tentukan class Tailwind
+                        $badgeClass = $isOnline
+                        ? 'bg-blue-100 text-blue-700 border border-blue-200' // Biru untuk Online
+                        : 'bg-orange-100 text-orange-700 border border-orange-200'; // Oranye untuk Kasir
+                        @endphp
                         <span
-                            class="px-2 py-1 rounded-full text-xs {{ $order->payment_method === 'Online' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700' }}">
-                            {{ $order->payment_method }}
+                            class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full {{ $badgeClass }}">
+                            @if($isOnline)
+                            {{-- Icon Kilat/Digital --}}
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                            @else
+                            {{-- Icon User/Tangan --}}
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                            @endif
+                            {{ $displayType }}
                         </span>
+                    </td>
+                    <td class="p-3">
+                        {{ $order->payment_method }}
                     </td>
                     <td class="p-3 text-right font-mono font-bold text-gray-800">IDR {{
                         number_format($order->total_amount, 0,

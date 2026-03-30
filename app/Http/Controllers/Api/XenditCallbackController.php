@@ -15,14 +15,14 @@ class XenditCallbackController extends Controller
     {
         // 1. Verifikasi Token Webhook (Sangat Penting!)
         $callbackToken = config('services.xendit.webhook_token');
-        
+
         if ($request->header('x-callback-token') !== $callbackToken) {
             Log::warning('Xendit Callback: Unauthorized attempt with invalid token.');
             return response()->json(['message' => 'Invalid Callback Token'], 403);
         }
 
         $payload = $request->all();
-        
+
         // Log untuk memantau di terminal Intel NUC (storage/logs/laravel.log)
         Log::info('Xendit Callback Received:', $payload);
 
@@ -46,18 +46,19 @@ class XenditCallbackController extends Controller
         if ($status === 'PAID' || $status === 'SETTLED') {
             // Cek agar tidak memproses dua kali (Idempotency)
             if ($order->payment_status !== 'paid') {
-                
+
                 $order->update([
                     'payment_status' => 'paid',
                     'paid_at'        => now(),
                     'payment_method' => $payload['payment_method'] ?? 'Xendit Online',
+                    'payment_type'   => 'Online',
                 ]);
 
                 // 5. Broadcast ke Reverb/Echo (Agar UI Tamu di HP otomatis berubah)
                 // Ini akan memicu listener "refreshStatus" di Livewire Jonathan
                 // event(new OrderUpdated($order));
                 broadcast(new OrderUpdated($order))->toOthers();
-                broadcast(new OrderSent($order))->toOthers(); 
+                broadcast(new OrderSent($order))->toOthers();
 
                 // Log::info("Xendit Callback: Order #{$orderNumber} marked as PAID.");
             }

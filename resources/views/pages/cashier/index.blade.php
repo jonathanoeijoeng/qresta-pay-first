@@ -75,6 +75,7 @@ new class extends Component
             'payment_status' => 'paid',
             'payment_method' => $method,
             'paid_at'        => now(),
+            'payment_type'   => 'Kasir',
         ]);
 
         // 4. Pastikan semua item di dalamnya juga berstatus 'served' 

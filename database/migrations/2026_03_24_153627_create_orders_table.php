@@ -25,6 +25,8 @@ return new class extends Migration
             // Status pembayaran
             $table->enum('payment_status', ['unpaid', 'paid'])->default('unpaid');
             $table->string('payment_method')->nullable(); // Cash, QRIS, etc.
+            $table->string('payment_type')->nullable(); // Online, Kasir, etc.
+
 
             $table->bigInteger('total_amount'); // Gunakan integer (IDR) tanpa koma di DB
             $table->decimal('tax_percentage', 5, 2);

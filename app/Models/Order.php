@@ -21,6 +21,7 @@ class Order extends Model
         'tax_percentage',
         'confirmed_at',
         'paid_at',
+        'payment_type',
     ];
 
     protected static function booted()
