@@ -2,6 +2,8 @@
 
 use Livewire\Component;
 use App\Models\Order;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 new class extends Component {
     public function getSalesData()
@@ -24,16 +26,128 @@ new class extends Component {
         ];
     }
 
+    public function getStats()
+    {
+        $today = Carbon::today();
+        $yesterday = Carbon::yesterday();
+
+        // 1. Total Revenue Hari Ini (Hanya yang sudah PAID)
+        $todayRevenue = Order::whereDate('created_at', $today)->where('payment_status', 'paid')->sum('total_amount');
+
+        // 2. Total Orders Hari Ini (Semua kecuali yang cancelled)
+        $todayOrders = Order::whereDate('created_at', $today)->where('status', '!=', 'cancelled')->count();
+
+        // 3. Breakdown Order (Online vs Kasir)
+        $onlineOrders = Order::whereDate('created_at', $today)->where('payment_type', 'Online')->count();
+        $cashierOrders = $todayOrders - $onlineOrders;
+
+        // 4. Average Order Value (AOV)
+        // Cegah division by zero jika belum ada order
+        $aov = $todayOrders > 0 ? $todayRevenue / $todayOrders : 0;
+
+        // 5. Pending Payments (Meja yang sudah pesan tapi belum bayar)
+        $pendingCount = Order::where('payment_status', 'unpaid')->where('status', '!=', 'cancelled')->count();
+
+        // 6. Perbandingan dengan Kemarin (Untuk indikator % naik/turun)
+        $yesterdayRevenue = Order::whereDate('created_at', $yesterday)->where('payment_status', 'paid')->sum('total_amount');
+
+        $revenueGrowth = 0;
+        if ($yesterdayRevenue > 0) {
+            $revenueGrowth = (($todayRevenue - $yesterdayRevenue) / $yesterdayRevenue) * 100;
+        }
+
+        return compact('todayRevenue', 'todayOrders', 'onlineOrders', 'cashierOrders', 'aov', 'pendingCount', 'revenueGrowth');
+    }
+
     public function render()
     {
         return $this->view([
             'salesData' => $this->getSalesData(),
+            'stats' => $this->getStats(),
         ]);
     }
 };
 ?>
 
 <div>
+    <x-header header="Dashboard" description="Cook fast Serve fast" />
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 font-medium">Total Revenue (Hari Ini)</p>
+                    <h3 class="text-2xl font-bold text-gray-800 mt-1">
+                        IDR {{ number_format($stats['todayRevenue'], 0, ',', '.') }}
+                    </h3>
+                </div>
+                <div class="p-3 bg-blue-50 rounded-lg">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3-1.343-3-3-3zM12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z">
+                        </path>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4 flex items-center text-sm">
+                <span class="text-green-500 font-semibold">+12%</span>
+                <span class="text-gray-400 ml-2">vs kemarin</span>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 font-medium">Total Orders</p>
+                    <h3 class="text-2xl font-bold text-gray-800 mt-1">{{ $stats['todayOrders'] }}</h3>
+                </div>
+                <div class="p-3 bg-orange-50 rounded-lg">
+                    <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4 text-sm text-gray-400">
+                {{ $stats['onlineOrders'] }} via Online, {{ $stats['cashierOrders'] }} via Kasir
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 font-medium">AOV (Avg. Spend)</p>
+                    <h3 class="text-2xl font-bold text-gray-800 mt-1">
+                        IDR {{ number_format($stats['aov'], 0, ',', '.') }}
+                    </h3>
+                </div>
+                <div class="p-3 bg-purple-50 rounded-lg">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                        </path>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4 text-sm text-gray-400">Rata-rata pengeluaran/meja</div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 font-medium">Pending Payments</p>
+                    <h3 class="text-2xl font-bold text-red-600 mt-1">{{ $stats['pendingCount'] }} Meja</h3>
+                </div>
+                <div class="p-3 bg-red-50 rounded-lg">
+                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4 text-sm text-red-400 font-medium">Segera follow-up meja ini!</div>
+        </div>
+    </div>
     <div class="p-6 bg-white rounded-xl shadow-sm border border-gray-100">
         <div class="flex justify-between items-center mb-4">
             <h3 class="font-bold text-gray-800 text-lg">Tren Pendapatan (30 Hari Terakhir)</h3>
