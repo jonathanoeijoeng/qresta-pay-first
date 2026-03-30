@@ -71,7 +71,6 @@ new class extends Component
         $this->order->refresh();
         Log::info('pengen tahu isi $order di order-status'. $this->order);
         if ($this->order->payment_status === 'paid') {
-            dd('terimakasih');
             // Memicu Alpine.js untuk menampilkan ucapan terima kasih
             session()->forget(['active_order_id', 'customer_table_id', 'merging_order_id']);
             $this->dispatch('order-paid-success');

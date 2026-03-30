@@ -20,6 +20,7 @@ new class extends Component
     public $table_id; // Kita pakai ID Meja agar lebih akurat
     public $branch_id;
     public $token;
+    public $url;
 
     public function mount()
     {
@@ -69,7 +70,7 @@ new class extends Component
         }
 
         // 2. GENERATE URL
-        $url = url("/s/{$this->token}");
+        $this->url = url("/s/{$this->token}");
 
         // 3. GENERATE QR CODE
         $renderer = new ImageRenderer(
@@ -78,7 +79,7 @@ new class extends Component
         );
         $writer = new Writer($renderer);
         
-        $this->qrCodeRawSvg = $writer->writeString($url);
+        $this->qrCodeRawSvg = $writer->writeString($this->url);
         
         // Ambil data untuk tampilan label
         $table = Table::find($this->table_id); 
@@ -156,7 +157,7 @@ new class extends Component
                         <div class="mt-4 py-1 px-3 bg-zinc-900 text-white rounded-lg inline-block">
                             <span class="text-sm font-bold">MEJA {{ $tableNumber }}</span>
                         </div>
-                        <p class="text-[10px] text-zinc-400 mt-4 font-mono">Token: {{ $token }}</p>
+                        <p class="text-[10px] text-zinc-400 mt-4 font-mono">{{ $url }}</p>
                     </div>
                     @else
                     <div class="text-center text-zinc-300">

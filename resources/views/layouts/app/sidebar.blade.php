@@ -28,7 +28,7 @@
                     {{ __('Kitchen') }}
                 </flux:sidebar.item>
                 <flux:sidebar.item icon="banknotes" :href="route('cashier.index')"
-                    :current="request()->routeIs('cashier.index')" wire:navigate>
+                    :current="request()->routeIs('cashier.*')" wire:navigate>
                     {{ __('Cashier') }}
                 </flux:sidebar.item>
 

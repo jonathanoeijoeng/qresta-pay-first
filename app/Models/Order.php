@@ -20,6 +20,7 @@ class Order extends Model
         'tax_amount',
         'tax_percentage',
         'confirmed_at',
+        'paid_at',
     ];
 
     protected static function booted()

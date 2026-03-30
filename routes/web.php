@@ -38,6 +38,7 @@ Route::middleware(['auth', 'role:super_admin|admin_cabang|kitchen'])->group(func
 Route::middleware(['auth', 'role:super_admin|admin_cabang|cashier'])->group(function () {
     Route::prefix('cashier')->name('cashier.')->group(function () {
         Route::livewire('/', 'pages::cashier.index')->name('index');
+        Route::livewire('/history', 'pages::cashier.history')->name('history');
     });
 });
 
