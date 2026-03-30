@@ -4,8 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
-use Symfony\Component\Finder\Glob;
 
 class DatabaseSeeder extends Seeder
 {
@@ -22,8 +20,9 @@ class DatabaseSeeder extends Seeder
             TableSeeder::class,
             // CategorySeeder::class,
             MenuSeeder::class,
+            OrderSeeder::class,
             RolePermissionSeeder::class,
-            GlobalSettingSeeder::class
+            GlobalSettingSeeder::class,
         ]);
     }
 }

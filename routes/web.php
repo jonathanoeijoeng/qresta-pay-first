@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\Table;
 use App\Models\TableSession;
 use Illuminate\Support\Facades\Route;
 
@@ -11,7 +10,7 @@ Route::get('/', function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::view('dashboard', 'dashboard')->name('dashboard');
+    Route::livewire('dashboard', 'pages::dashboard.index')->name('dashboard');
 });
 
 Route::middleware(['auth', 'can:qr-code'])->group(function () {});
@@ -20,6 +19,7 @@ Route::get('/order', function () {
     return view('order');
 })->name('order.index');
 
+// Admin
 Route::middleware(['auth', 'role:super_admin|admin_cabang'])->group(function () {
     Route::livewire('/qr-code', 'pages::qr-code')->name('qr-code');
     Route::livewire('/admin/menu-management', 'pages::admin.menu-management')->name('admin.menu-management');
@@ -29,12 +29,14 @@ Route::middleware(['auth', 'role:super_admin|admin_cabang'])->group(function () 
     Route::livewire('/admin/global-settings', 'pages::admin.global-settings')->name('admin.global-settings');
 });
 
+// Kitchen
 Route::middleware(['auth', 'role:super_admin|admin_cabang|kitchen'])->group(function () {
     Route::prefix('kitchen')->name('kitchen.')->group(function () {
         Route::livewire('/', 'pages::kitchen.index')->name('index');
     });
 });
 
+// Cashier
 Route::middleware(['auth', 'role:super_admin|admin_cabang|cashier'])->group(function () {
     Route::prefix('cashier')->name('cashier.')->group(function () {
         Route::livewire('/', 'pages::cashier.index')->name('index');
@@ -48,7 +50,7 @@ Route::get('/s/{token}', function ($token) {
     // Cari berdasarkan qr_token
     $table = TableSession::where('token', $token)->first();
 
-    if (!$table) {
+    if (! $table) {
         return redirect()->route('invalid-access');
     }
     session([
@@ -69,4 +71,4 @@ Route::get('/invalid-scan', function () {
     return view('pages.errors.invalid-scan');
 })->name('invalid-access');
 
-require __DIR__ . '/settings.php';
+require __DIR__.'/settings.php';

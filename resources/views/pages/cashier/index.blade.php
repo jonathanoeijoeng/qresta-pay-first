@@ -5,8 +5,7 @@ use App\Models\Order;
 use App\Event\OrderSent;
 use App\Concerns\HasNotification;
 
-new class extends Component
-{
+new class extends Component {
     use HasNotification;
 
     public $search = '';
@@ -17,13 +16,13 @@ new class extends Component
     public $message = '';
     public $order;
     public $currentRoute;
-    
+
     public function mount()
     {
         // Simpan nama route saat halaman pertama kali dibuka
         $this->currentRoute = request()->route()->getName();
     }
-    
+
     public function getListeners()
     {
         $branchId = auth()->user()->branch_id;
@@ -41,12 +40,10 @@ new class extends Component
     {
         $this->selectedOrderId = $orderId;
         $this->selectedMethod = $method;
-        
+
         // Gunakan <b> untuk bold dan \n untuk baris baru
-        $this->message = "Apakah Anda yakin pesanan Meja <b>{$this->selectedOrderId}</b> sudah dibayar?\n\n" .
-                        "Total: <b>IDR " . number_format($total, 0, ',', '.') . "</b>\n" .
-                        "Metode: <b>{$method}</b>";
-                        
+        $this->message = "Apakah Anda yakin pesanan Meja <b>{$this->selectedOrderId}</b> sudah dibayar?\n\n" . 'Total: <b>IDR ' . number_format($total, 0, ',', '.') . "</b>\n" . "Metode: <b>{$method}</b>";
+
         $this->showConfirmPayment = true;
     }
 
@@ -54,7 +51,7 @@ new class extends Component
     {
         // Panggil fungsi markAsPaid yang sudah kita buat tadi
         $this->markAsPaid($this->selectedOrderId, $this->selectedMethod);
-        
+
         // Tutup modal
         $this->showConfirmPayment = false;
     }
@@ -74,60 +71,59 @@ new class extends Component
         $order->update([
             'payment_status' => 'paid',
             'payment_method' => $method,
-            'paid_at'        => now(),
-            'payment_type'   => 'Kasir',
+            'paid_at' => now(),
+            'payment_type' => 'Kasir',
         ]);
 
-        // 4. Pastikan semua item di dalamnya juga berstatus 'served' 
+        // 4. Pastikan semua item di dalamnya juga berstatus 'served'
         // (Jaga-jaga jika kasir klik bayar sebelum koki klik selesai)
-        $order->items()->where('status', '!=', 'served')->update(['status' => 'served']);
+        $order
+            ->items()
+            ->where('status', '!=', 'served')
+            ->update(['status' => 'served']);
 
         // 5. Broadcast ke Reverb
         // Tamu akan melihat layar "Terima Kasih" atau "Sudah Dibayar" secara real-time
         broadcast(new \App\Events\OrderUpdated($order))->toOthers();
-        
+
         // 6. Notifikasi Sukses
-        $this->dispatch('toast', 
-            type: 'success', 
-            text: "Order #{$order->order_number} sudah dibayar"
-        );
+        $this->dispatch('toast', type: 'success', text: "Order #{$order->order_number} sudah dibayar");
     }
 
-   public function render()
+    public function render()
     {
-
         $activeOrders = Order::with(['table', 'items.menu', 'branch']) // Tambahkan branch agar tahu pesanan milik cabang mana
             ->where('payment_status', 'unpaid')
             ->where('status', '!=', 'draft')
-            
-            // LOGIKA AKSES: 
+
+            // LOGIKA AKSES:
             // Jika user punya branch_id (Kasir Cabang), filter berdasarkan cabangnya.
             // Jika branch_id Kosong (Super Admin), lewati filter ini (ambil semua).
-            ->when(auth()->user()->branch_id, function($query) {
+            ->when(auth()->user()->branch_id, function ($query) {
                 return $query->where('branch_id', auth()->user()->branch_id);
             })
 
-            ->when($this->search, function($query) {
-                $query->where(function($q) {
+            ->when($this->search, function ($query) {
+                $query->where(function ($q) {
                     $q->where('order_number', 'ilike', '%' . $this->search . '%')
-                    ->orWhereHas('table', function($t) {
-                        $t->where('number', 'ilike', '%' . $this->search . '%');
-                    })
-                    // Opsional: Super Admin bisa cari berdasarkan nama cabang
-                    ->orWhereHas('branch', function($b) {
-                        $b->where('name', 'ilike', '%' . $this->search . '%');
-                    });
+                        ->orWhereHas('table', function ($t) {
+                            $t->where('number', 'ilike', '%' . $this->search . '%');
+                        })
+                        // Opsional: Super Admin bisa cari berdasarkan nama cabang
+                        ->orWhereHas('branch', function ($b) {
+                            $b->where('name', 'ilike', '%' . $this->search . '%');
+                        });
                 });
             })
             ->orderBy('updated_at', 'desc')
             ->get();
 
         // Grouping Items per Order
-        $activeOrders->each(function($order) {
+        $activeOrders->each(function ($order) {
             $order->grouped_items = $order->items->groupBy('menu_id')->map(function ($group) {
                 return (object) [
-                    'name'           => $group->first()->menu->name,
-                    'quantity'       => $group->sum('quantity'),
+                    'name' => $group->first()->menu->name,
+                    'quantity' => $group->sum('quantity'),
                     'total_subtotal' => $group->sum('subtotal'),
                 ];
             });
@@ -149,12 +145,12 @@ new class extends Component
         </div>
         <div class="flex bg-gray-100 p-1 rounded-lg mt-4 md:mt-0">
             <a href="{{ route('cashier.index') }}" wire:navigate
-                class="px-4 py-2 rounded-md text-sm font-medium transition {{ $currentRoute === ('cashier.index') ? 'bg-white shadow text-brand-600' : 'text-gray-500 hover:text-gray-700' }}">
+                class="px-4 py-2 rounded-md text-sm font-medium transition {{ $currentRoute === 'cashier.index' ? 'bg-white shadow text-brand-600' : 'text-gray-500 hover:text-gray-700' }}">
                 Overview
             </a>
 
             <a href="{{ route('cashier.history') }}" wire:navigate
-                class="px-4 py-2 rounded-md text-sm font-medium transition {{ $currentRoute === ('cashier.history') ? 'bg-white shadow text-brand-600' : 'text-gray-500 hover:text-gray-700' }}">
+                class="px-4 py-2 rounded-md text-sm font-medium transition {{ $currentRoute === 'cashier.history' ? 'bg-white shadow text-brand-600' : 'text-gray-500 hover:text-gray-700' }}">
                 History
             </a>
         </div>
@@ -174,7 +170,7 @@ new class extends Component
                 class="block w-full pl-11 pr-4 py-4 bg-white border-2 border-zinc-100 rounded-3xl text-sm focus:border-brand-500 active:border-brand-500 focus:ring-0 transition-all shadow-sm focus:outline-none ">
 
             {{-- Tombol Clear jika sedang mencari --}}
-            @if($search)
+            @if ($search)
             <button wire:click="$set('search', '')"
                 class="absolute inset-y-0 right-0 pr-4 flex items-center text-zinc-400 hover:text-red-500">
                 <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
@@ -187,13 +183,13 @@ new class extends Component
         </div>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        @foreach($activeOrders as $order)
+        @foreach ($activeOrders as $order)
         <div class="bg-white border-2 border-zinc-100 rounded-3xl p-5 shadow-sm flex flex-col justify-between">
             <div>
                 <div class="flex justify-between items-center mb-2">
                     <div class="flex items-center gap-2">
-                        <h3 class="text-2xl font-black text-zinc-800 underline decoration-brand-500">Meja {{
-                            $order->table->number }}</h3>
+                        <h3 class="text-2xl font-black text-zinc-800 underline decoration-brand-500">Meja
+                            {{ $order->table->number }}</h3>
                         <div class="text-xs px-2 py-1 rounded-full w-fit text-center my-1 font-semibold"
                             style="background-color: {{ $order->branch->color }}; color: white;">
                             {{ $order->branch->code }}
@@ -203,11 +199,10 @@ new class extends Component
                         {{ $order->status }}
                     </flux:badge>
                 </div>
-                <div class="text-lg font-bold text-brand-600 mb-4">#{{
-                    $order->order_number }}</div>
+                <div class="text-lg font-bold text-brand-600 mb-4">#{{ $order->order_number }}</div>
 
                 <div class="space-y-1 mb-4">
-                    @foreach($order->grouped_items as $item)
+                    @foreach ($order->grouped_items as $item)
                     <div class="flex justify-between text-xs font-medium text-zinc-500">
                         <span>{{ $item->quantity }}x {{ $item->name }}</span>
                         <span>IDR {{ number_format($item->total_subtotal, 0, ',', ',') }}</span>
@@ -219,15 +214,14 @@ new class extends Component
             <div class="border-t border-dashed border-zinc-200 pt-4 mt-auto">
                 <div class="flex justify-between items-center mb-4">
                     <span class="text-xs font-bold text-zinc-400 uppercase">Total Tagihan</span>
-                    <span class="text-xl font-black text-brand-600">IDR {{ number_format($order->total_amount, 0, ',',
-                        ',') }}</span>
+                    <span class="text-xl font-black text-brand-600">IDR
+                        {{ number_format($order->total_amount, 0, ',', ',') }}</span>
                 </div>
 
                 <div x-data="{ showPayment: false }">
                     <button x-show="!showPayment" @click="showPayment = true" class="w-full bg-brand-600 text-white py-2 rounded-xl font-bold disabled:opacity-50
                         cursor-pointer disabled:cursor-not-allowed transition-all" @disabled($order->status !==
-                        'completed-served')
-                        >
+                        'completed-served')>
                         Bayar Sekarang
                     </button>
 
@@ -239,11 +233,11 @@ new class extends Component
                         'QRIS' => 'brand', // Warna utama (misal: Orange)
                         'CC' => 'blue', // Warna Indigo
                         'Debit' => 'green', // Warna Biru Muda
-                        'Cash' => 'zinc' // Warna Hijau
+                        'Cash' => 'zinc', // Warna Hijau
                         ];
                         @endphp
 
-                        @foreach($paymentMethods as $method => $variant)
+                        @foreach ($paymentMethods as $method => $variant)
                         <x-button
                             wire:click="confirmPayment({{ $order->id }}, '{{ $method }}', {{ $order->total_amount }})"
                             variant="{{ $variant }}" class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all">
