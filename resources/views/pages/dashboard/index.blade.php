@@ -44,15 +44,27 @@ new class extends Component {
         </div>
     </div>
     <script>
-        let salesChartInstance;
+        // Gunakan properti window agar tidak error "Identifier already declared" saat navigasi
+        window.salesChartInstance = window.salesChartInstance || null;
 
         function renderSalesChart() {
             const chartContainer = document.querySelector('#salesChart');
-            if (!chartContainer || typeof ApexCharts === 'undefined' || salesChartInstance) {
+
+            // 1. Validasi dasar
+            if (!chartContainer || typeof ApexCharts === 'undefined') {
                 return;
             }
 
-            const averageSeries = Array(@json(count($salesData['data']))).fill(@json($salesData['average']));
+            // 2. KRUSIAL: Hancurkan instance lama jika ada sebelum membuat yang baru
+            if (window.salesChartInstance) {
+                window.salesChartInstance.destroy();
+                window.salesChartInstance = null;
+            }
+
+            // Siapkan data rata-rata dari PHP
+            const averageValue = @json($salesData['average'] ?? 0);
+            const dataLength = @json(count($salesData['data'] ?? []));
+            const averageSeries = Array(dataLength).fill(averageValue);
 
             const options = {
                 chart: {
@@ -75,6 +87,7 @@ new class extends Component {
                 xaxis: {
                     type: 'datetime',
                     categories: @json($salesData['labels']),
+                    tickAmount: 5, // Agar sumbu X tetap lega (muncul ~setiap 6 hari)
                     labels: {
                         datetimeUTC: false,
                         format: 'dd MMM',
@@ -90,23 +103,23 @@ new class extends Component {
                         show: false
                     }
                 },
-                colors: ['#0ea5e9', '#f97316'],
+                colors: ['#0ea5e9', '#f97316'], // Biru untuk Pendapatan, Oranye untuk Rata-rata
                 stroke: {
                     curve: 'smooth',
                     width: [3, 2],
-                    dashArray: [0, 6]
+                    dashArray: [0, 6] // Garis rata-rata dibuat putus-putus
                 },
                 markers: {
-                    size: [7, 0],
-                    colors: '#0973a3'
+                    size: [7, 0], // Marker kecil di titik pendapatan saja
+                    colors: ['#0b84ba']
                 },
                 fill: {
                     type: ['gradient', 'solid'],
-                    opacity: [0.7, 0],
+                    opacity: [0.7, 0], // Rata-rata tidak pakai fill agar tidak menumpuk
                     gradient: {
                         shadeIntensity: 1,
                         opacityFrom: 0.7,
-                        opacityTo: 0.3
+                        opacityTo: 0.2
                     }
                 },
                 dataLabels: {
@@ -115,32 +128,37 @@ new class extends Component {
                 yaxis: {
                     labels: {
                         formatter: function(value) {
-                            if (value >= 1000000) {
-                                return 'IDR ' + (value / 1000000).toFixed(1) + 'M'; // Contoh: IDR 1.5M
-                            } else if (value >= 1000) {
-                                return 'IDR ' + (value / 1000).toFixed(0) + 'K'; // Contoh: IDR 850K
-                            }
+                            if (value >= 1000000) return 'IDR ' + (value / 1000000).toFixed(1) + 'M';
+                            if (value >= 1000) return 'IDR ' + (value / 1000).toFixed(0) + 'K';
                             return 'IDR ' + value;
                         },
                     }
                 },
                 tooltip: {
                     x: {
-                        format: 'dd MMM yyyy'
-                    } // Tooltip tetap muncul detail tanggalnya
+                        formatter: function(val) {
+                            return new Date(val).toLocaleDateString('id-ID', {
+                                weekday: 'long',
+                                day: 'numeric',
+                                month: 'short'
+                            });
+                        }
+                    }
                 },
                 legend: {
                     show: true,
+                    position: 'bottom',
                     fontSize: '12px',
                     offsetY: 20,
                 }
             };
 
-            salesChartInstance = new ApexCharts(chartContainer, options);
-            salesChartInstance.render();
+            // 3. Simpan instance ke window
+            window.salesChartInstance = new ApexCharts(chartContainer, options);
+            window.salesChartInstance.render();
         }
 
-        document.addEventListener('DOMContentLoaded', renderSalesChart);
+        // Jalankan saat load pertama dan setiap kali navigasi Livewire v4 selesai
         document.addEventListener('livewire:navigated', renderSalesChart);
     </script>
 </div>

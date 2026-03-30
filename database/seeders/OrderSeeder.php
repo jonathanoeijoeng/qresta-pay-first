@@ -21,112 +21,98 @@ class OrderSeeder extends Seeder
         $branches = Branch::all();
 
         if ($menus->isEmpty() || $tables->isEmpty() || $branches->isEmpty()) {
-            $this->command->warn('OrderSeeder skipped because Branch, Table, or Menu data is missing.');
-
+            $this->command->warn('OrderSeeder skipped karena data dasar belum lengkap.');
             return;
         }
 
-        $startMonth = Carbon::now()->subMonths(2)->startOfMonth();
         $taxPercentage = 11.00;
         $paymentMethods = ['QRIS', 'CC', 'Debit', 'Cash'];
         $paymentTypes = ['Kasir', 'Online'];
-        $itemNotes = ['Tanpa bawang', 'Extra pedas', 'Sambal terpisah', 'Extra saos', null, null];
-        $orderStatuses = ['completed-served', 'processing', 'pending', 'cancelled'];
-        $currentMonthUnpaidRemaining = 8;
+        $itemNotes = ['Tanpa bawang', 'Extra pedas', null];
 
-        for ($month = 0; $month < 3; $month++) {
-            $currentMonth = $startMonth->copy()->addMonths($month);
-            $days = range(1, $currentMonth->daysInMonth);
-            shuffle($days);
-            $activeDays = array_slice($days, 0, rand(15, min(22, $currentMonth->daysInMonth)));
-            sort($activeDays);
+        // COUNTER UTAMA
+        $maxPendingOrders = 4;
+        $pendingCount = 0;
 
-            foreach ($activeDays as $dayNumber) {
-                $date = $currentMonth->copy()->day($dayNumber);
-                $ordersPerDay = rand(10, 18);
+        // Kita mulai dari 2 bulan lalu
+        $startDate = Carbon::now()->subMonths(2)->startOfMonth();
+        $endDate = Carbon::now();
 
-                for ($orderIndex = 0; $orderIndex < $ordersPerDay; $orderIndex++) {
-                    $branch = $branches->random();
-                    $branchTables = $tables->where('branch_id', $branch->id);
+        // Loop setiap hari agar grafik Dashboard Jonathan penuh 30 hari terakhir
+        for ($date = $startDate; $date <= $endDate; $date->addDay()) {
 
-                    if ($branchTables->isEmpty()) {
-                        continue;
-                    }
+            $ordersPerDay = rand(10, 15);
 
-                    $branchMenus = $menus->filter(function ($menu) use ($branch) {
-                        return $menu->branches->contains('id', $branch->id);
-                    });
+            for ($i = 0; $i < $ordersPerDay; $i++) {
+                $branch = $branches->random();
+                $branchTables = $tables->where('branch_id', $branch->id);
+                if ($branchTables->isEmpty()) continue;
 
-                    if ($branchMenus->isEmpty()) {
-                        continue;
-                    }
+                $branchMenus = $menus->filter(fn($m) => $m->branches->contains('id', $branch->id));
+                if ($branchMenus->isEmpty()) continue;
 
-                    $orderDate = $date->copy()->addSeconds(rand(0, 86399));
-                    $orderStatus = Arr::random($orderStatuses);
-                    $isCurrentMonth = $currentMonth->isSameMonth(Carbon::now()) && $currentMonth->isSameYear(Carbon::now());
-                    if ($isCurrentMonth) {
-                        $paymentStatus = $currentMonthUnpaidRemaining > 0 ? 'unpaid' : 'paid';
-                        if ($paymentStatus === 'unpaid') {
-                            $currentMonthUnpaidRemaining--;
-                        }
-                    } else {
-                        $paymentStatus = 'paid';
-                    }
-                    $paymentType = $paymentStatus === 'paid' ? Arr::random($paymentTypes) : null;
+                $orderTime = $date->copy()->addSeconds(rand(0, 86399));
 
-                    $items = [];
-                    $orderSubtotal = 0;
-                    $itemCount = rand(1, 4);
+                // LOGIKA STATUS: 
+                // Jika counter belum sampai 4 DAN hari ini adalah hari ini (Current Date), jadikan pending.
+                // Selain itu, semuanya LANGSUNG served & paid.
+                $isPendingThisOrder = false;
+                if ($date->isToday() && $pendingCount < $maxPendingOrders) {
+                    $isPendingThisOrder = true;
+                    $orderStatus = 'processing';
+                    $paymentStatus = 'unpaid';
+                    $pendingCount++;
+                } else {
+                    $orderStatus = 'completed-served';
+                    $paymentStatus = 'paid';
+                }
 
-                    for ($itemIndex = 0; $itemIndex < $itemCount; $itemIndex++) {
-                        $menu = $branchMenus->random();
-                        $branchPivot = $menu->branches->firstWhere('id', $branch->id)->pivot;
-                        $priceAtOrder = $branchPivot->price ?? $menu->base_price;
-                        $quantity = rand(1, 3);
-                        $subtotal = $priceAtOrder * $quantity;
+                $orderSubtotal = 0;
+                $itemsToCreate = [];
+                $itemCount = rand(1, 3);
 
-                        $items[] = [
-                            'menu_id' => $menu->id,
-                            'quantity' => $quantity,
-                            'price_at_order' => $priceAtOrder,
-                            'subtotal' => $subtotal,
-                            'notes' => Arr::random($itemNotes),
-                            'status' => 'pending',
-                        ];
+                for ($j = 0; $j < $itemCount; $j++) {
+                    $menu = $branchMenus->random();
+                    $price = $menu->branches->firstWhere('id', $branch->id)->pivot->price ?? $menu->base_price;
+                    $qty = rand(1, 2);
+                    $sub = $price * $qty;
 
-                        $orderSubtotal += $subtotal;
-                    }
-
-                    $taxAmount = (int) round($orderSubtotal * $taxPercentage / 100);
-                    $totalAmount = $orderSubtotal + $taxAmount;
-                    $paymentMethod = $paymentStatus === 'paid' ? Arr::random($paymentMethods) : null;
-                    $confirmedAt = $paymentStatus === 'paid' ? $orderDate->copy()->subMinutes(rand(2, 30)) : null;
-                    $paidAt = $paymentStatus === 'paid' ? $orderDate->copy()->subMinutes(rand(0, 20)) : null;
-
-                    $order = Order::create([
-                        'branch_id' => $branch->id,
-                        'table_id' => $branchTables->random()->id,
-                        'order_number' => 'QRS-'.$orderDate->format('Ymd').'-'.strtoupper(Str::random(5)),
-                        'status' => $orderStatus,
-                        'payment_status' => $paymentStatus,
-                        'payment_method' => $paymentMethod,
-                        'payment_type' => $paymentType,
-                        'total_amount' => $totalAmount,
-                        'tax_percentage' => $taxPercentage,
-                        'tax_amount' => $taxAmount,
+                    $itemsToCreate[] = [
+                        'menu_id' => $menu->id,
+                        'quantity' => $qty,
+                        'price_at_order' => $price,
+                        'subtotal' => $sub,
                         'notes' => Arr::random($itemNotes),
-                        'confirmed_at' => $confirmedAt,
-                        'paid_at' => $paidAt,
-                        'created_at' => $orderDate,
-                        'updated_at' => $orderDate,
-                    ]);
+                        // PAKSA STATUS DI SINI
+                        'status' => $isPendingThisOrder ? 'pending' : 'served',
+                    ];
+                    $orderSubtotal += $sub;
+                }
 
-                    foreach ($items as $itemData) {
-                        $itemData['order_id'] = $order->id;
-                        $itemData['created_at'] = $orderDate;
-                        $itemData['updated_at'] = $orderDate;
-                        OrderItem::create($itemData);
-                    }
+                $taxAmount = (int) round($orderSubtotal * $taxPercentage / 100);
+
+                $order = Order::create([
+                    'branch_id' => $branch->id,
+                    'table_id' => $branchTables->random()->id,
+                    'order_number' => 'QRS-' . $orderTime->format('Ymd') . '-' . strtoupper(Str::random(5)),
+                    'status' => $orderStatus,
+                    'payment_status' => $paymentStatus,
+                    'payment_method' => $paymentStatus === 'paid' ? Arr::random($paymentMethods) : null,
+                    'payment_type' => $paymentStatus === 'paid' ? Arr::random($paymentTypes) : null,
+                    'total_amount' => $orderSubtotal + $taxAmount,
+                    'tax_percentage' => $taxPercentage,
+                    'tax_amount' => $taxAmount,
+                    'confirmed_at' => $orderTime->copy()->subMinutes(rand(5, 20)),
+                    'paid_at' => $paymentStatus === 'paid' ? $orderTime : null,
+                    'created_at' => $orderTime,
+                    'updated_at' => $orderTime,
+                ]);
+
+                foreach ($itemsToCreate as $item) {
+                    $item['order_id'] = $order->id;
+                    $item['created_at'] = $orderTime;
+                    $item['updated_at'] = $orderTime;
+                    OrderItem::create($item);
                 }
             }
         }
