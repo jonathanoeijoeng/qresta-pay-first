@@ -310,7 +310,7 @@ new class extends Component
 
         {{-- Kontainer Utama QR --}}
         <div
-            class="w-full max-w-sm aspect-square bg-white p-4 rounded-[2.5rem] shadow-[0_0_50px_rgba(255,255,255,0.1)] flex flex-col items-center justify-center transform animate-in zoom-in-95 duration-300">
+            class="w-full max-w-sm bg-white p-4 rounded-[2.5rem] shadow-[0_0_50px_rgba(255,255,255,0.1)] flex flex-col items-center justify-center transform animate-in zoom-in-95 duration-300">
             <h3 class="text-zinc-900 font-black text-xl tracking-tight">QResta</h3><span>{{
                 $order->table->branch->name
                 }}</span>
