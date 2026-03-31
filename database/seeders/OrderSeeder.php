@@ -16,12 +16,13 @@ class OrderSeeder extends Seeder
 {
     public function run(): void
     {
+        // Ambil data dasar, gunakan keyBy agar akses ID lebih cepat
         $menus = Menu::with('branches')->get();
         $tables = Table::all();
-        $branches = Branch::all();
+        $branches = Branch::all()->keyBy('id');
 
-        if ($menus->isEmpty() || $tables->isEmpty() || $branches->isEmpty()) {
-            $this->command->warn('OrderSeeder skipped karena data dasar belum lengkap.');
+        if ($menus->isEmpty() || $tables->isEmpty() || $branches->count() < 3) {
+            $this->command->warn('OrderSeeder skipped: Pastikan data Menu, Table, dan minimal 3 Branch sudah ada.');
             return;
         }
 
@@ -30,21 +31,41 @@ class OrderSeeder extends Seeder
         $paymentTypes = ['Kasir', 'Online'];
         $itemNotes = ['Tanpa bawang', 'Extra pedas', null];
 
-        // COUNTER UTAMA
-        $maxPendingOrders = 4;
+        // Counter untuk pesanan yang belum selesai (pending)
+        $maxPendingOrders = 10;
         $pendingCount = 0;
 
-        // Kita mulai dari 2 bulan lalu
+        // Rentang waktu: 2 bulan lalu sampai sekarang
         $startDate = Carbon::now()->subMonths(2)->startOfMonth();
         $endDate = Carbon::now();
 
-        // Loop setiap hari agar grafik Dashboard Jonathan penuh 30 hari terakhir
-        for ($date = $startDate; $date <= $endDate; $date->addDay()) {
+        // Loop harian
+        for ($date = $startDate->copy(); $date <= $endDate; $date->addDay()) {
 
-            $ordersPerDay = rand(10, 15);
+            $ordersPerDay = rand(80, 150);
 
+            // Loop pesanan per hari
             for ($i = 0; $i < $ordersPerDay; $i++) {
-                $branch = $branches->random();
+
+                // --- 1. LOGIKA DISTRIBUSI CABANG (50% : 35% : 15%) ---
+                $roll = rand(1, 100);
+                if ($roll <= 50) {
+                    $targetBranchId = 1;
+                } elseif ($roll <= 85) {
+                    $targetBranchId = 2;
+                } else {
+                    $targetBranchId = 3;
+                }
+
+                $branch = $branches->get($targetBranchId) ?? $branches->first();
+
+                // --- 2. PENENTUAN NOMOR ORDER UNIK (Mencegah Duplicate Key Error) ---
+                // Gunakan indeks $i sebagai sequence agar dalam satu hari tidak ada yang sama
+                $sequence = str_pad($i + 1, 3, '0', STR_PAD_LEFT);
+                $randomSuffix = strtoupper(Str::random(3));
+                $orderNumber = 'QRS-' . $date->format('Ymd') . '-' . $sequence . $randomSuffix;
+
+                // --- 3. LOGIKA RELASI (Table & Menu per Cabang) ---
                 $branchTables = $tables->where('branch_id', $branch->id);
                 if ($branchTables->isEmpty()) continue;
 
@@ -53,9 +74,7 @@ class OrderSeeder extends Seeder
 
                 $orderTime = $date->copy()->addSeconds(rand(0, 86399));
 
-                // LOGIKA STATUS: 
-                // Jika counter belum sampai 4 DAN hari ini adalah hari ini (Current Date), jadikan pending.
-                // Selain itu, semuanya LANGSUNG served & paid.
+                // --- 4. LOGIKA STATUS PESANAN ---
                 $isPendingThisOrder = false;
                 if ($date->isToday() && $pendingCount < $maxPendingOrders) {
                     $isPendingThisOrder = true;
@@ -67,12 +86,14 @@ class OrderSeeder extends Seeder
                     $paymentStatus = 'paid';
                 }
 
+                // --- 5. LOGIKA ITEM PESANAN & SUB-TOTAL ---
                 $orderSubtotal = 0;
                 $itemsToCreate = [];
-                $itemCount = rand(1, 3);
+                $itemCount = rand(1, 7);
 
                 for ($j = 0; $j < $itemCount; $j++) {
                     $menu = $branchMenus->random();
+                    // Ambil harga dari pivot table branch_menu atau fallback ke base_price
                     $price = $menu->branches->firstWhere('id', $branch->id)->pivot->price ?? $menu->base_price;
                     $qty = rand(1, 2);
                     $sub = $price * $qty;
@@ -83,7 +104,6 @@ class OrderSeeder extends Seeder
                         'price_at_order' => $price,
                         'subtotal' => $sub,
                         'notes' => Arr::random($itemNotes),
-                        // PAKSA STATUS DI SINI
                         'status' => $isPendingThisOrder ? 'pending' : 'served',
                     ];
                     $orderSubtotal += $sub;
@@ -91,10 +111,11 @@ class OrderSeeder extends Seeder
 
                 $taxAmount = (int) round($orderSubtotal * $taxPercentage / 100);
 
+                // --- 6. SIMPAN DATA ORDER ---
                 $order = Order::create([
                     'branch_id' => $branch->id,
                     'table_id' => $branchTables->random()->id,
-                    'order_number' => 'QRS-' . $orderTime->format('Ymd') . '-' . strtoupper(Str::random(5)),
+                    'order_number' => $orderNumber,
                     'status' => $orderStatus,
                     'payment_status' => $paymentStatus,
                     'payment_method' => $paymentStatus === 'paid' ? Arr::random($paymentMethods) : null,
@@ -108,6 +129,7 @@ class OrderSeeder extends Seeder
                     'updated_at' => $orderTime,
                 ]);
 
+                // --- 7. SIMPAN DATA ORDER ITEMS ---
                 foreach ($itemsToCreate as $item) {
                     $item['order_id'] = $order->id;
                     $item['created_at'] = $orderTime;

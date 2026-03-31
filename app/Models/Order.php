@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Concerns\BelongsToBranch;
 use App\Models\OrderItem;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class Order extends Model
 {
+    use BelongsToBranch;
     protected $fillable = [
         'order_number',
         'table_id',

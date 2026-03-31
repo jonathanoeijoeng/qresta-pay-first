@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 new class extends Component {
+
     public function getSalesData()
     {
         // Mengambil data 30 hari terakhir
@@ -78,7 +79,7 @@ new class extends Component {
                 <div>
                     <p class="text-sm text-gray-500 font-medium">Total Revenue (Hari Ini)</p>
                     <h3 class="text-2xl font-bold text-gray-800 mt-1">
-                        IDR {{ number_format($stats['todayRevenue'], 0, ',', '.') }}
+                        IDR {{ number_format($stats['todayRevenue'], 0, '.', ',') }}
                     </h3>
                 </div>
                 <div class="p-3 bg-blue-50 rounded-lg">
@@ -118,7 +119,7 @@ new class extends Component {
                 <div>
                     <p class="text-sm text-gray-500 font-medium">AOV (Avg. Spend)</p>
                     <h3 class="text-2xl font-bold text-gray-800 mt-1">
-                        IDR {{ number_format($stats['aov'], 0, ',', '.') }}
+                        IDR {{ number_format($stats['aov'], 0, '.', ',') }}
                     </h3>
                 </div>
                 <div class="p-3 bg-purple-50 rounded-lg">
@@ -225,7 +226,11 @@ new class extends Component {
                 },
                 markers: {
                     size: [7, 0], // Marker kecil di titik pendapatan saja
-                    colors: ['#0b84ba']
+                    colors: ['#0b84ba'],
+                    hover: {
+                        size: undefined,
+                        sizeOffset: 2
+                        },
                 },
                 fill: {
                     type: ['gradient', 'solid'],
