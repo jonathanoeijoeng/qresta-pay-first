@@ -2,6 +2,7 @@
 
 use Livewire\Component;
 use App\Models\Order;
+use App\Models\Branch;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -36,21 +37,53 @@ new class extends Component {
 
     public function getSalesData()
     {
-        // Mengambil data 30 hari terakhir
-        $sales = Order::where('payment_status', 'paid')
-            ->where('paid_at', '>=', now()->subDays(30))
-            ->selectRaw('DATE(paid_at) as date, SUM(total_amount) as total')
-            ->groupBy('date')
-            ->orderBy('date')
-            ->get();
+        $user = auth()->user();
+        $isPusat = is_null($user->branch_id);
 
-        $data = $sales->pluck('total');
-        $average = $data->count() ? round($data->avg(), 0) : 0;
+        // 1. Query Dasar
+        $query = Order::where('payment_status', 'paid')->where('paid_at', '>=', now()->subDays(30));
+
+        if (!$isPusat) {
+            $query->where('branch_id', $user->branch_id);
+        }
+
+        $salesData = $query->selectRaw('DATE(paid_at) as date, branch_id, SUM(total_amount) as total')->groupBy('date', 'branch_id')->orderBy('date')->get();
+
+        $labels = $salesData->pluck('date')->unique()->values();
+
+        if ($isPusat) {
+            // --- LOGIC PUSAT (Tetap menggunakan Collection agar bisa push & values) ---
+            $branches = Branch::all();
+            $series = $branches->map(function ($branch) use ($labels, $salesData) {
+                return [
+                    'name' => $branch->name,
+                    'type' => 'column',
+                    'data' => $labels->map(fn($d) => (int) ($salesData->where('date', $d)->where('branch_id', $branch->id)->first()->total ?? 0))->toArray(),
+                ];
+            });
+
+            $totalData = $labels->map(fn($d) => (int) $salesData->where('date', $d)->sum('total'))->toArray();
+            $avgValue = count($totalData) > 0 ? array_sum($totalData) / count($totalData) : 0;
+
+            $series->push(['name' => 'Total', 'type' => 'line', 'data' => $totalData]);
+            $series->push(['name' => 'Rata-rata', 'type' => 'line', 'data' => array_fill(0, count($totalData), round($avgValue, 0))]);
+
+            $finalSeries = $series->values()->toArray();
+        } else {
+            // --- LOGIC CABANG ---
+            $finalSeries = [
+                [
+                    'name' => 'Penjualan Cabang Anda',
+                    'type' => 'area', // Ganti dari 'line' ke 'area'
+                    'data' => $labels->map(fn($d) => (int) ($salesData->where('date', $d)->first()->total ?? 0))->toArray(),
+                ],
+            ];
+        }
 
         return [
-            'labels' => $sales->pluck('date'),
-            'data' => $data,
-            'average' => $average,
+            'labels' => $labels->toArray(),
+            'series' => $finalSeries, // Langsung kirim hasil akhirnya
+            'isPusat' => $isPusat,
         ];
     }
 
@@ -103,7 +136,7 @@ new class extends Component {
     public function render()
     {
         return $this->view([
-            'salesData' => $this->getSalesData(),
+            'chartData' => $this->getSalesData(),
             'stats' => $this->getStats(),
         ]);
     }
@@ -214,126 +247,94 @@ new class extends Component {
             <div id="salesChart" class="min-h-[320px]"></div>
         </div>
     </div>
+
     <script>
-        // Gunakan properti window agar tidak error "Identifier already declared" saat navigasi
         window.salesChartInstance = window.salesChartInstance || null;
 
         function renderSalesChart() {
-            const chartContainer = document.querySelector('#salesChart');
+            const container = document.querySelector('#salesChart');
+            if (!container || typeof ApexCharts === 'undefined') return;
+            if (window.salesChartInstance) window.salesChartInstance.destroy();
 
-            // 1. Validasi dasar
-            if (!chartContainer || typeof ApexCharts === 'undefined') {
-                return;
-            }
-
-            // 2. KRUSIAL: Hancurkan instance lama jika ada sebelum membuat yang baru
-            if (window.salesChartInstance) {
-                window.salesChartInstance.destroy();
-                window.salesChartInstance = null;
-            }
-
-            // Siapkan data rata-rata dari PHP
-            const averageValue = @json($salesData['average'] ?? 0);
-            const dataLength = @json(count($salesData['data'] ?? []));
-            const averageSeries = Array(dataLength).fill(averageValue);
+            const serverData = @json($chartData);
+            const isPusat = serverData.isPusat;
+            const totalSeries = serverData.series.length;
 
             const options = {
+                series: serverData.series,
                 chart: {
-                    type: 'area',
-                    height: 350,
+                    height: 400,
+                    // Pastikan root type mengikuti series untuk user cabang
+                    type: isPusat ? 'line' : 'area',
+                    stacked: isPusat,
                     toolbar: {
                         show: true
-                    },
-                    zoom: {
-                        enabled: true
                     }
-                },
-                series: [{
-                    name: 'Pendapatan',
-                    data: @json($salesData['data'])
-                }, {
-                    name: 'Rata-rata',
-                    data: averageSeries
-                }],
-                xaxis: {
-                    type: 'datetime',
-                    categories: @json($salesData['labels']),
-                    tickAmount: 5, // Agar sumbu X tetap lega (muncul ~setiap 6 hari)
-                    labels: {
-                        datetimeUTC: false,
-                        format: 'dd MMM',
-                        style: {
-                            colors: '#64748b',
-                            fontSize: '10px'
-                        }
-                    },
-                    axisBorder: {
-                        show: false
-                    },
-                    axisTicks: {
-                        show: false
-                    }
-                },
-                colors: ['#0ea5e9', '#f97316'], // Biru untuk Pendapatan, Oranye untuk Rata-rata
-                stroke: {
-                    curve: 'smooth',
-                    width: [3, 2],
-                    dashArray: [0, 6] // Garis rata-rata dibuat putus-putus
-                },
-                markers: {
-                    size: [7, 0], // Marker kecil di titik pendapatan saja
-                    colors: ['#0b84ba'],
-                    hover: {
-                        size: undefined,
-                        sizeOffset: 2
-                    },
                 },
                 fill: {
-                    type: ['gradient', 'solid'],
-                    opacity: [0.7, 0], // Rata-rata tidak pakai fill agar tidak menumpuk
+                    // Jika pusat: solid (untuk bar). Jika cabang: gradient (untuk area)
+                    type: isPusat ? 'solid' : 'gradient',
+                    opacity: isPusat ? [...Array(totalSeries - 2).fill(0.6), 1, 1] : [0.6],
                     gradient: {
                         shadeIntensity: 1,
-                        opacityFrom: 0.7,
-                        opacityTo: 0.2
+                        inverseColors: false,
+                        opacityFrom: 0.6, // Area bawah garis mulai dari 60%
+                        opacityTo: 0.05, // Memudar hampir transparan di dasar (0.05)
+                        stops: [20, 100] // Gradien mulai memudar setelah 20% ketinggian
+                    }
+                },
+                stroke: {
+                    // Gunakan garis yang sedikit lebih tebal (3) agar kontras dengan area gradiennya
+                    width: isPusat ? [...Array(totalSeries - 2).fill(0), 4, 2] : [3],
+                    curve: 'smooth',
+                    dashArray: isPusat ? [...Array(totalSeries - 1).fill(0), 8] : [0]
+                },
+
+                colors: isPusat ? ['#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#64748b'] : [
+                    '#0ea5e9'
+                ], // Warna biru cerah untuk cabang
+                xaxis: {
+                    type: 'datetime',
+                    categories: serverData.labels,
+                    labels: {
+                        format: 'dd MMM'
+                    }
+                },
+                yaxis: {
+                    labels: {
+                        formatter: function(val) {
+                            // Tetap gunakan format ribuan dengan koma (contoh: 8,232,000)
+                            if (val >= 1000000) return 'IDR ' + (val / 1000000).toFixed(1) + 'M';
+                            return 'IDR ' + val.toLocaleString('en-US');
+                        }
+                    }
+                },
+                markers: {
+                    size: isPusat ? [0, 0, 0, 7, 0] : [7], // Beri titik pada garis untuk user cabang
+                    strokeWidth: 2,
+                    hover: {
+                        size: 8
+                    }
+                },
+                tooltip: {
+                    shared: true,
+                    intersect: false,
+                    y: {
+                        formatter: (val) => "IDR " + val.toLocaleString('en-US')
                     }
                 },
                 dataLabels: {
                     enabled: false
                 },
-                yaxis: {
-                    labels: {
-                        formatter: function(value) {
-                            if (value >= 1000000) return 'IDR ' + (value / 1000000).toFixed(1) + 'M';
-                            if (value >= 1000) return 'IDR ' + (value / 1000).toFixed(0) + 'K';
-                            return 'IDR ' + value;
-                        },
-                    }
-                },
-                tooltip: {
-                    x: {
-                        formatter: function(val) {
-                            return new Date(val).toLocaleDateString('id-ID', {
-                                weekday: 'long',
-                                day: 'numeric',
-                                month: 'short'
-                            });
-                        }
-                    }
-                },
                 legend: {
-                    show: true,
-                    position: 'bottom',
-                    fontSize: '12px',
-                    offsetY: 20,
+                    position: 'top'
                 }
             };
 
-            // 3. Simpan instance ke window
-            window.salesChartInstance = new ApexCharts(chartContainer, options);
+            window.salesChartInstance = new ApexCharts(container, options);
             window.salesChartInstance.render();
         }
 
-        // Jalankan saat load pertama dan setiap kali navigasi Livewire v4 selesai
         document.addEventListener('livewire:navigated', renderSalesChart);
     </script>
 </div>
