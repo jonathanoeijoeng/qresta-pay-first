@@ -274,7 +274,7 @@ new class extends Component {
                 fill: {
                     // Jika pusat: solid (untuk bar). Jika cabang: gradient (untuk area)
                     type: isPusat ? 'solid' : 'gradient',
-                    opacity: isPusat ? [...Array(totalSeries - 2).fill(0.6), 1, 1] : [0.6],
+                    opacity: isPusat ? [...Array(totalSeries - 2).fill(0.4), 1, 1] : [0.6],
                     gradient: {
                         shadeIntensity: 1,
                         inverseColors: false,
