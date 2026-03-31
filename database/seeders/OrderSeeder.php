@@ -46,15 +46,15 @@ class OrderSeeder extends Seeder
 
             // Loop pesanan per hari
             for ($i = 0; $i < $ordersPerDay; $i++) {
-
+                
                 // --- 1. LOGIKA DISTRIBUSI CABANG (50% : 35% : 15%) ---
                 $roll = rand(1, 100);
                 if ($roll <= 50) {
-                    $targetBranchId = 1;
+                    $targetBranchId = 1; 
                 } elseif ($roll <= 85) {
-                    $targetBranchId = 2;
+                    $targetBranchId = 2; 
                 } else {
-                    $targetBranchId = 3;
+                    $targetBranchId = 3; 
                 }
 
                 $branch = $branches->get($targetBranchId) ?? $branches->first();

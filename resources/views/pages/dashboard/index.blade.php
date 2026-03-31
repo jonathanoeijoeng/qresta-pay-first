@@ -6,6 +6,22 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 new class extends Component {
+    public $lastUpdated;
+
+    public function mount()
+    {
+        $this->lastUpdated = now()->format('H:i:s');
+    }
+
+    public function refreshDashboard()
+    {
+        // Livewire secara otomatis akan menjalankan ulang query di render()
+        // saat method ini dipanggil.
+        $this->lastUpdated = now()->format('H:i:s');
+
+        // Opsional: Berikan notifikasi kecil
+        session()->flash('status', 'Data berhasil diperbarui.');
+    }
 
     public function getSalesData()
     {
@@ -35,6 +51,19 @@ new class extends Component {
         // 1. Total Revenue Hari Ini (Hanya yang sudah PAID)
         $todayRevenue = Order::whereDate('created_at', $today)->where('payment_status', 'paid')->sum('total_amount');
 
+        // Penjualan kemarin
+        $yesterdayRevenue = Order::whereDate('created_at', Carbon::yesterday())->where('payment_status', 'paid')->sum('total_amount');
+
+        // Hitung Persentase Perubahan
+        $percentageChange = 0;
+        if ($yesterdayRevenue > 0) {
+            $percentageChange = (($todayRevenue - $yesterdayRevenue) / $yesterdayRevenue) * 100;
+        } elseif ($todaySales > 0) {
+            $percentageChange = 100; // Jika kemarin 0 dan hari ini ada penjualan
+        }
+
+        $isUp = $percentageChange >= 0;
+
         // 2. Total Orders Hari Ini (Semua kecuali yang cancelled)
         $todayOrders = Order::whereDate('created_at', $today)->where('status', '!=', 'cancelled')->count();
 
@@ -57,7 +86,7 @@ new class extends Component {
             $revenueGrowth = (($todayRevenue - $yesterdayRevenue) / $yesterdayRevenue) * 100;
         }
 
-        return compact('todayRevenue', 'todayOrders', 'onlineOrders', 'cashierOrders', 'aov', 'pendingCount', 'revenueGrowth');
+        return compact('todayRevenue', 'todayOrders', 'onlineOrders', 'cashierOrders', 'aov', 'pendingCount', 'revenueGrowth', 'percentageChange', 'isUp', 'yesterdayRevenue');
     }
 
     public function render()
@@ -72,6 +101,19 @@ new class extends Component {
 
 <div>
     <x-header header="Dashboard" description="Cook fast Serve fast" />
+    <div class="flex gap-3 items-center justify-end mb-4">
+        <span class="text-xs text-gray-500">
+            Terakhir diperbarui: <span class="font-semibold">{{ $lastUpdated }}</span>
+        </span>
+        <button wire:click="refreshDashboard" wire:loading.class="animate-spin"
+            class="p-2 bg-brand-600 text-white rounded-lg cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-auto" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd"
+                    d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                    clip-rule="evenodd" />
+            </svg>
+        </button>
+    </div>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
 
         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
@@ -83,15 +125,18 @@ new class extends Component {
                     </h3>
                 </div>
                 <div class="p-3 bg-blue-50 rounded-lg">
-                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 8c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3-1.343-3-3-3zM12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z">
+                            d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z">
                         </path>
                     </svg>
                 </div>
             </div>
             <div class="mt-4 flex items-center text-sm">
-                <span class="text-green-500 font-semibold">+12%</span>
+                <span class="{{ $stats['isUp'] ? 'text-green-500' : 'text-red-500' }} font-semibold">
+                    {{ $stats['isUp'] ? '+ ' : '' }}{{ number_format($stats['percentageChange'], 1) }}%
+                </span>
                 <span class="text-gray-400 ml-2">vs kemarin</span>
             </div>
         </div>
@@ -230,7 +275,7 @@ new class extends Component {
                     hover: {
                         size: undefined,
                         sizeOffset: 2
-                        },
+                    },
                 },
                 fill: {
                     type: ['gradient', 'solid'],
