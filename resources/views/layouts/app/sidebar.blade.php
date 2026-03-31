@@ -15,88 +15,95 @@
 
         <flux:sidebar.nav>
             <flux:sidebar.group :heading="__('Platform')" class="grid">
-                <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')"
-                    wire:navigate>
-                    {{ __('Dashboard') }}
-                </flux:sidebar.item>
-                <flux:sidebar.item icon="qr-code" :href="route('qr-code')" :current="request()->routeIs('qr-code')"
-                    wire:navigate>
-                    {{ __('QR Code') }}
-                </flux:sidebar.item>
-                <flux:sidebar.item icon="shopping-cart" :href="route('kitchen.index')"
-                    :current="request()->routeIs('kitchen.index')" wire:navigate>
-                    {{ __('Kitchen') }}
-                </flux:sidebar.item>
-                <flux:sidebar.item icon="banknotes" :href="route('cashier.index')"
-                    :current="request()->routeIs('cashier.*')" wire:navigate>
-                    {{ __('Cashier') }}
-                </flux:sidebar.item>
+                @can('dashboard')
+                    <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')"
+                        wire:navigate>
+                        {{ __('Dashboard') }}
+                    </flux:sidebar.item>
+                @endcan
+                @can('manage tables')
+                    <flux:sidebar.item icon="qr-code" :href="route('qr-code')" :current="request()->routeIs('qr-code')"
+                        wire:navigate>
+                        {{ __('QR Code') }}
+                    </flux:sidebar.item>
+                @endcan
+                @can('view orders')
+                    <flux:sidebar.item icon="shopping-cart" :href="route('kitchen.index')"
+                        :current="request()->routeIs('kitchen.index')" wire:navigate>
+                        {{ __('Kitchen') }}
+                    </flux:sidebar.item>
+                @endcan
+                @can('process payments')
+                    <flux:sidebar.item icon="banknotes" :href="route('cashier.index')"
+                        :current="request()->routeIs('cashier.*')" wire:navigate>
+                        {{ __('Cashier') }}
+                    </flux:sidebar.item>
+                @endcan
 
                 @can('change menu')
-                <flux:navlist>
-                    {{-- Admin Section --}}
-                    <div x-data="{ open: @js(request()->routeIs('admin.*')) }">
-                        <flux:sidebar.item icon="cog" x-on:click.prevent="open = !open"
-                            class="cursor-pointer flex justify-between items-center group" {{-- Warna teks saat aktif
+                    <flux:navlist>
+                        {{-- Admin Section --}}
+                        <div x-data="{ open: @js(request()->routeIs('admin.*')) }">
+                            <flux:sidebar.item icon="cog" x-on:click.prevent="open = !open"
+                                class="cursor-pointer flex justify-between items-center group" {{-- Warna teks saat aktif
                             menggunakan Primary Orange --}}
-                            :class="request()->routeIs('admin.*') ? 'text-brand font-bold bg-brand-light/50' : 'text-slate-600'">
-                            <div class="flex justify-between items-center">
-                                <span>{{ __('Admin') }}</span>
-                                <div :class="open ? 'rotate-180 text-brand' : ''"
-                                    class="transition-transform duration-200">
-                                    <flux:icon name="chevron-down" variant="micro" />
+                                :class="request()->routeIs('admin.*') ? 'text-brand font-bold bg-brand-light/50' : 'text-slate-600'">
+                                <div class="flex justify-between items-center">
+                                    <span>{{ __('Admin') }}</span>
+                                    <div :class="open ? 'rotate-180 text-brand' : ''"
+                                        class="transition-transform duration-200">
+                                        <flux:icon name="chevron-down" variant="micro" />
+                                    </div>
                                 </div>
-                            </div>
-                        </flux:sidebar.item>
+                            </flux:sidebar.item>
 
-                        @can('change central')
-                        <div x-show="open" x-collapse x-cloak class="pl-8 mt-1 space-y-1">
-                            <flux:sidebar.item :href="route('admin.menu-management')"
-                                :current="request()->routeIs('admin.menu-management')" wire:navigate size="sm" {{--
-                                Hover state halus dengan warna accent --}}
-                                class="hover:text-brand hover:bg-brand-light/30">
-                                {{ __('Menu - Categories') }}
-                            </flux:sidebar.item>
+                            @can('change central')
+                                <div x-show="open" x-collapse x-cloak class="pl-8 mt-1 space-y-1">
+                                    <flux:sidebar.item :href="route('admin.menu-management')"
+                                        :current="request()->routeIs('admin.menu-management')" wire:navigate size="sm"
+                                        {{--
+                                Hover state halus dengan warna accent --}} class="hover:text-brand hover:bg-brand-light/30">
+                                        {{ __('Menu - Categories') }}
+                                    </flux:sidebar.item>
+                                </div>
+                            @endcan
+                            @can('change branch')
+                                <div x-show="open" x-collapse x-cloak class="pl-8 mt-1 space-y-1">
+                                    <flux:sidebar.item :href="route('admin.branch-menu-management')"
+                                        :current="request()->routeIs('admin.branch-menu-management')" wire:navigate
+                                        size="sm" {{-- Hover state halus dengan warna accent --}} class="hover:text-brand hover:bg-brand-light/30">
+                                        {{ __('Branch Menu') }}
+                                    </flux:sidebar.item>
+                                </div>
+                            @endcan
+                            @can('change central')
+                                <div x-show="open" x-collapse x-cloak class="pl-8 mt-1 space-y-1">
+                                    <flux:sidebar.item :href="route('admin.user-management')"
+                                        :current="request()->routeIs('admin.user-management')" wire:navigate size="sm"
+                                        {{--
+                                Hover state halus dengan warna accent --}} class="hover:text-brand hover:bg-brand-light/30">
+                                        {{ __('Users') }}
+                                    </flux:sidebar.item>
+                                </div>
+                                <div x-show="open" x-collapse x-cloak class="pl-8 mt-1 space-y-1">
+                                    <flux:sidebar.item :href="route('admin.role-permission')"
+                                        :current="request()->routeIs('admin.role-permission')" wire:navigate size="sm"
+                                        {{--
+                                Hover state halus dengan warna accent --}} class="hover:text-brand hover:bg-brand-light/30">
+                                        {{ __('Role - Permission') }}
+                                    </flux:sidebar.item>
+                                </div>
+                                <div x-show="open" x-collapse x-cloak class="pl-8 mt-1 space-y-1">
+                                    <flux:sidebar.item :href="route('admin.global-settings')"
+                                        :current="request()->routeIs('admin.global-settings')" wire:navigate size="sm"
+                                        {{--
+                                Hover state halus dengan warna accent --}} class="hover:text-brand hover:bg-brand-light/30">
+                                        {{ __('Global Settings') }}
+                                    </flux:sidebar.item>
+                                </div>
+                            @endcan
                         </div>
-                        @endcan
-                        @can('change branch')
-                        <div x-show="open" x-collapse x-cloak class="pl-8 mt-1 space-y-1">
-                            <flux:sidebar.item :href="route('admin.branch-menu-management')"
-                                :current="request()->routeIs('admin.branch-menu-management')" wire:navigate size="sm"
-                                {{-- Hover state halus dengan warna accent --}}
-                                class="hover:text-brand hover:bg-brand-light/30">
-                                {{ __('Branch Menu') }}
-                            </flux:sidebar.item>
-                        </div>
-                        @endcan
-                        @can('change central')
-                        <div x-show="open" x-collapse x-cloak class="pl-8 mt-1 space-y-1">
-                            <flux:sidebar.item :href="route('admin.user-management')"
-                                :current="request()->routeIs('admin.user-management')" wire:navigate size="sm" {{--
-                                Hover state halus dengan warna accent --}}
-                                class="hover:text-brand hover:bg-brand-light/30">
-                                {{ __('Users') }}
-                            </flux:sidebar.item>
-                        </div>
-                        <div x-show="open" x-collapse x-cloak class="pl-8 mt-1 space-y-1">
-                            <flux:sidebar.item :href="route('admin.role-permission')"
-                                :current="request()->routeIs('admin.role-permission')" wire:navigate size="sm" {{--
-                                Hover state halus dengan warna accent --}}
-                                class="hover:text-brand hover:bg-brand-light/30">
-                                {{ __('Role - Permission') }}
-                            </flux:sidebar.item>
-                        </div>
-                        <div x-show="open" x-collapse x-cloak class="pl-8 mt-1 space-y-1">
-                            <flux:sidebar.item :href="route('admin.global-settings')"
-                                :current="request()->routeIs('admin.global-settings')" wire:navigate size="sm" {{--
-                                Hover state halus dengan warna accent --}}
-                                class="hover:text-brand hover:bg-brand-light/30">
-                                {{ __('Global Settings') }}
-                            </flux:sidebar.item>
-                        </div>
-                        @endcan
-                    </div>
-                </flux:navlist>
+                    </flux:navlist>
                 @endcan
             </flux:sidebar.group>
         </flux:sidebar.nav>
@@ -161,21 +168,21 @@
     @fluxScripts
     <script>
         window.addEventListener('play-sound', event => {
-        // Daftar semua suara di satu tempat (Centralized)
-        const sounds = {
-            'kitchen': '/sounds/notification.mp3',
-            'guest': '/sounds/notification.mp3',
-            'cashier': '/sounds/notification.mp3',
-            'default': '/sounds/notification.mp3'
-        };
+            // Daftar semua suara di satu tempat (Centralized)
+            const sounds = {
+                'kitchen': '/sounds/notification.mp3',
+                'guest': '/sounds/notification.mp3',
+                'cashier': '/sounds/notification.mp3',
+                'default': '/sounds/notification.mp3'
+            };
 
-        const soundPath = sounds[event.detail.type] || sounds['default'];
-        const audio = new Audio(soundPath);
-        
-        audio.play().catch(error => {
-            console.log("Autoplay dicegah. Kasir harus klik layar dulu.");
+            const soundPath = sounds[event.detail.type] || sounds['default'];
+            const audio = new Audio(soundPath);
+
+            audio.play().catch(error => {
+                console.log("Autoplay dicegah. Kasir harus klik layar dulu.");
+            });
         });
-    });
     </script>
 </body>
 

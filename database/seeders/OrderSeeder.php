@@ -42,6 +42,7 @@ class OrderSeeder extends Seeder
         // Loop harian
         for ($date = $startDate->copy(); $date <= $endDate; $date->addDay()) {
 
+            // Maksimal 150 order per hari sesuai kesepakatan
             $ordersPerDay = rand(80, 150);
 
             // Loop pesanan per hari
@@ -59,18 +60,24 @@ class OrderSeeder extends Seeder
 
                 $branch = $branches->get($targetBranchId) ?? $branches->first();
 
-                // --- 2. PENENTUAN NOMOR ORDER UNIK (Mencegah Duplicate Key Error) ---
-                // Gunakan indeks $i sebagai sequence agar dalam satu hari tidak ada yang sama
-                $sequence = str_pad($i + 1, 3, '0', STR_PAD_LEFT);
-                $randomSuffix = strtoupper(Str::random(3));
-                $orderNumber = 'QRS-' . $date->format('Ymd') . '-' . $sequence . $randomSuffix;
-
-                // --- 3. LOGIKA RELASI (Table & Menu per Cabang) ---
+                // --- 2. LOGIKA RELASI (Table & Menu per Cabang) ---
                 $branchTables = $tables->where('branch_id', $branch->id);
                 if ($branchTables->isEmpty()) continue;
 
                 $branchMenus = $menus->filter(fn($m) => $m->branches->contains('id', $branch->id));
                 if ($branchMenus->isEmpty()) continue;
+
+                // Pilih meja secara acak untuk mendapatkan table_id
+                $selectedTable = $branchTables->random();
+
+                // --- 3. PENENTUAN NOMOR ORDER UNIK (Format: QRS-Tanggal-Meja-Sequence-Random) ---
+                // Menggunakan format: QRS-20260331-007-001-AXB
+                $datePart = $date->format('Ymd');
+                $tablePart = str_pad($selectedTable->id, 3, '0', STR_PAD_LEFT);
+                $sequencePart = str_pad($i + 1, 3, '0', STR_PAD_LEFT);
+                $randomPart = strtoupper(Str::random(3));
+
+                $orderNumber = "QRS-{$datePart}-{$tablePart}-{$sequencePart}-{$randomPart}";
 
                 $orderTime = $date->copy()->addSeconds(rand(0, 86399));
 
@@ -93,7 +100,6 @@ class OrderSeeder extends Seeder
 
                 for ($j = 0; $j < $itemCount; $j++) {
                     $menu = $branchMenus->random();
-                    // Ambil harga dari pivot table branch_menu atau fallback ke base_price
                     $price = $menu->branches->firstWhere('id', $branch->id)->pivot->price ?? $menu->base_price;
                     $qty = rand(1, 2);
                     $sub = $price * $qty;
@@ -114,7 +120,7 @@ class OrderSeeder extends Seeder
                 // --- 6. SIMPAN DATA ORDER ---
                 $order = Order::create([
                     'branch_id' => $branch->id,
-                    'table_id' => $branchTables->random()->id,
+                    'table_id' => $selectedTable->id, // Menggunakan ID meja yang sama dengan di order_number
                     'order_number' => $orderNumber,
                     'status' => $orderStatus,
                     'payment_status' => $paymentStatus,

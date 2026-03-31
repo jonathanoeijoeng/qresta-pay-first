@@ -11,6 +11,17 @@ new class extends Component {
     public function mount()
     {
         $this->lastUpdated = now()->format('H:i:s');
+        $user = auth()->user();
+
+        // Cek Role Kitchen
+        if ($user->hasRole('kitchen')) {
+            return $this->redirectRoute('kitchen.index');
+        }
+
+        // Cek Role Cashier
+        if ($user->hasRole('cashier')) {
+            return $this->redirectRoute('cashier.index');
+        }
     }
 
     public function refreshDashboard()
