@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     libjpeg62-turbo-dev \
     libfreetype6-dev \
     libpq-dev \
+    libicu-dev \
     zip \
     libzip-dev \
     unzip \
@@ -14,7 +15,8 @@ RUN apt-get update && apt-get install -y \
     curl \
     procps \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) gd zip pdo_pgsql pgsql pcntl
+    && docker-php-ext-configure intl \
+    && docker-php-ext-install -j$(nproc) gd zip pdo_pgsql pgsql pcntl intl
 
 # 2. Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
