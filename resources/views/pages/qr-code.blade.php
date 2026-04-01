@@ -51,7 +51,7 @@ new class extends Component {
                 // Pilih salah satu method di bawah sesuai kecocokan printer anda
                 $printer->bitImage($logo);
                 // $printer->graphics($logo); // Gunakan ini jika bitImage tidak muncul
-                $printer->feed();
+                $printer->feed(2);
             }
 
             /* 2. NAMA CABANG & DETAIL */
