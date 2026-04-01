@@ -48,12 +48,10 @@ new class extends Component {
             $query->where('branch_id', $user->branch_id);
         }
 
-        // Logic khusus PostgreSQL: 
+        // Logic khusus PostgreSQL:
         // (EXTRACT(EPOCH FROM (paid_at - created_at)) / 60)
-        $avgDuration = $query->selectRaw('AVG(EXTRACT(EPOCH FROM (paid_at - created_at)) / 60) as avg_minutes')
-            ->first()
-            ->avg_minutes;
-        return round($avgDuration ?? 0, 0); 
+        $avgDuration = $query->selectRaw('AVG(EXTRACT(EPOCH FROM (paid_at - created_at)) / 60) as avg_minutes')->first()->avg_minutes;
+        return round($avgDuration ?? 0, 0);
     }
 
     public function getSalesData()
@@ -166,7 +164,8 @@ new class extends Component {
 ?>
 
 <div>
-    <x-header header="Dashboard" description="Real-time visualization of branch sales performance and table service efficiency." />
+    <x-header header="Dashboard"
+        description="Real-time visualization of branch sales performance and table service efficiency." />
     <div class="flex gap-3 items-center justify-end mb-4">
         <span class="text-xs text-gray-500">
             Terakhir diperbarui: <span class="font-semibold">{{ $lastUpdated }}</span>
@@ -241,7 +240,8 @@ new class extends Component {
                     </svg>
                 </div>
             </div>
-            <p class="text-sm text-gray-400 mt-3">Rata-rata durasi per meja: <span class="font-semibold">{{ $tableDurationData }}</span> menit</p>
+            <p class="text-sm text-gray-400 mt-3">Rata-rata durasi per meja: <span
+                    class="font-semibold">{{ $tableDurationData }}</span> menit</p>
             <div class="mt-2 text-sm text-gray-400">Rata-rata pengeluaran/meja</div>
         </div>
 
@@ -272,77 +272,84 @@ new class extends Component {
     </div>
 
     <script>
-    window.salesChartInstance = window.salesChartInstance || null;
+        window.salesChartInstance = window.salesChartInstance || null;
 
-    function renderDynamicChart() {
-        const container = document.querySelector('#salesChart');
-        if (!container || typeof ApexCharts === 'undefined') return;
-        if (window.salesChartInstance) window.salesChartInstance.destroy();
+        function renderDynamicChart() {
+            const container = document.querySelector('#salesChart');
+            if (!container || typeof ApexCharts === 'undefined') return;
+            if (window.salesChartInstance) window.salesChartInstance.destroy();
 
-        // 1. Ambil data asli dari server (30 hari)
-        const serverData = @json($chartData);
-        let categories = serverData.labels;
-        let seriesData = JSON.parse(JSON.stringify(serverData.series)); // Deep clone agar data asli tidak rusak
+            // 1. Ambil data asli dari server (30 hari)
+            const serverData = @json($chartData);
+            let categories = serverData.labels;
+            let seriesData = JSON.parse(JSON.stringify(serverData.series)); // Deep clone agar data asli tidak rusak
 
-        // 2. DETEKSI MOBILE: Jika lebar layar < 768px, ambil 5 data terakhir
-        const isMobile = window.innerWidth < 768;
-        if (isMobile) {
-            const limit = 5;
-            // Potong label tanggal
-            categories = categories.slice(-limit);
-            
-            // Potong data di setiap series (Cabang, Total, Rata-rata)
-            seriesData.forEach(s => {
-                s.data = s.data.slice(-limit);
-            });
-        }
+            // 2. DETEKSI MOBILE: Jika lebar layar < 768px, ambil 5 data terakhir
+            const isMobile = window.innerWidth < 768;
+            if (isMobile) {
+                const limit = 5;
+                // Potong label tanggal
+                categories = categories.slice(-limit);
 
-        const isPusat = serverData.isPusat;
-        const totalSeries = seriesData.length;
+                // Potong data di setiap series (Cabang, Total, Rata-rata)
+                seriesData.forEach(s => {
+                    s.data = s.data.slice(-limit);
+                });
+            }
 
-        const options = {
-            series: seriesData,
-            chart: {
-                height: isMobile ? 300 : 400, // Lebih pendek di mobile agar hemat space
-                type: isPusat ? 'line' : 'area',
-                stacked: isPusat,
-                toolbar: { show: !isMobile } // Sembunyikan toolbar di mobile agar bersih
-            },
-            // ... (Pengaturan stroke, fill, dan markers tetap sama seperti sebelumnya)
-            stroke: {
-                width: isPusat ? [...Array(totalSeries - 2).fill(0), 4, 2] : [3],
-                curve: 'smooth',
-                dashArray: isPusat ? [...Array(totalSeries - 1).fill(0), 8] : [0]
-            },
-            markers: {
+            const isPusat = serverData.isPusat;
+            const totalSeries = seriesData.length;
+
+            const options = {
+                series: seriesData,
+                chart: {
+                    height: isMobile ? 300 : 400, // Lebih pendek di mobile agar hemat space
+                    type: isPusat ? 'line' : 'area',
+                    stacked: isPusat,
+                    toolbar: {
+                        show: !isMobile
+                    } // Sembunyikan toolbar di mobile agar bersih
+                },
+                // ... (Pengaturan stroke, fill, dan markers tetap sama seperti sebelumnya)
+                stroke: {
+                    width: isPusat ? [...Array(totalSeries - 2).fill(0), 4, 2] : [3],
+                    curve: 'smooth',
+                    dashArray: isPusat ? [...Array(totalSeries - 1).fill(0), 8] : [0]
+                },
+                markers: {
                     size: isPusat ? [0, 0, 0, 7, 0] : [7], // Beri titik pada garis untuk user cabang
                     strokeWidth: 2,
                     hover: {
                         size: 8
                     }
-            },
-            colors: isPusat ? ['#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#64748b'] : [
+                },
+                dataLabels: {
+                    enabled: false
+                },
+                colors: isPusat ? ['#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#64748b'] : [
                     '#0ea5e9'
-            ],
-            xaxis: {
-                type: 'datetime',
-                categories: categories,
-                tickAmount: isMobile ? 4 : 8, // Batasi jumlah label di sumbu X agar tidak tumpang tindih
-                labels: {
-                    format: 'dd MMM',
-                    style: { fontSize: isMobile ? '10px' : '12px' }
-                }
-            },
-            yaxis: {
-                labels: {
-                    formatter: function(val) {
-                        if (val >= 1000000) return 'IDR ' + (val / 1000000).toFixed(1) + 'M';
-                        if (val >= 1000) return (val / 1000).toFixed(0) + 'K';
-                        return val;
+                ],
+                xaxis: {
+                    type: 'datetime',
+                    categories: categories,
+                    tickAmount: isMobile ? 4 : 8, // Batasi jumlah label di sumbu X agar tidak tumpang tindih
+                    labels: {
+                        format: 'dd MMM',
+                        style: {
+                            fontSize: isMobile ? '10px' : '12px'
+                        }
                     }
-                }
-            },
-            fill: {
+                },
+                yaxis: {
+                    labels: {
+                        formatter: function(val) {
+                            if (val >= 1000000) return 'IDR ' + (val / 1000000).toFixed(1) + 'M';
+                            if (val >= 1000) return (val / 1000).toFixed(0) + 'K';
+                            return val;
+                        }
+                    }
+                },
+                fill: {
                     // Jika pusat: solid (untuk bar). Jika cabang: gradient (untuk area)
                     type: isPusat ? 'solid' : 'gradient',
                     opacity: isPusat ? [...Array(totalSeries - 2).fill(0.4), 1, 1] : [0.6],
@@ -353,27 +360,28 @@ new class extends Component {
                         opacityTo: 0.05, // Memudar hampir transparan di dasar (0.05)
                         stops: [20, 100] // Gradien mulai memudar setelah 20% ketinggian
                     }
-            },
-            tooltip: {
+                },
+                tooltip: {
                     shared: true,
                     intersect: false,
                     y: {
                         formatter: (val) => "IDR " + val.toLocaleString('en-US')
                     }
-            },
-            legend: {
-                position: 'top',
-                fontSize: isMobile ? '10px' : '13px',
-                offsetY: isMobile ? 0 : 10
-            }
-        };
+                },
+                legend: {
+                    position: 'top',
+                    fontSize: isMobile ? '10px' : '13px',
+                    offsetY: isMobile ? 0 : 10
+                }
+            };
 
-        window.salesChartInstance = new ApexCharts(container, options);
-        window.salesChartInstance.render();
-    }
+            window.salesChartInstance = new ApexCharts(container, options);
+            window.salesChartInstance.render();
+        }
 
-    // Jalankan saat load, navigasi, dan resize (opsional)
-    document.addEventListener('livewire:navigated', renderDynamicChart);
-    window.addEventListener('resize', _.debounce(renderDynamicChart, 200)); // Gunakan debounce agar tidak berat saat resize
-</script>
+        // Jalankan saat load, navigasi, dan resize (opsional)
+        document.addEventListener('livewire:navigated', renderDynamicChart);
+        window.addEventListener('resize', _.debounce(renderDynamicChart,
+        200)); // Gunakan debounce agar tidak berat saat resize
+    </script>
 </div>
