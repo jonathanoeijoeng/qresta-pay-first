@@ -11,9 +11,11 @@ use App\Models\Table;
 use App\Models\Order;
 use App\Models\TableSession;
 use Illuminate\Support\Facades\Auth;
+use Mike42\Escpos\Printer;
+use Mike42\Escpos\EscposImage; // Tambahkan ini
+use Mike42\Escpos\PrintConnectors\NetworkPrintConnector;
 
-new class extends Component
-{
+new class extends Component {
     public $qrCodeRawSvg;
     public $branchName;
     public $tableNumber;
@@ -25,12 +27,57 @@ new class extends Component
     public function mount()
     {
         if (Auth::user()->branch_id) {
-        $this->branch_id = Auth::user()->branch_id;
-        $this->branchName = Auth::user()->branch->name;
+            $this->branch_id = Auth::user()->branch_id;
+            $this->branchName = Auth::user()->branch->name;
         } else {
             // Jika Super Admin (branch_id biasanya null)
-            $this->branch_id = null; 
-            $this->branchName = "Semua Cabang (Super Admin)";
+            $this->branch_id = null;
+            $this->branchName = 'Semua Cabang (Super Admin)';
+        }
+    }
+
+    private function printToThermal($url, $tableNumber, $branchName)
+    {
+        try {
+            $connector = new NetworkPrintConnector('192.168.1.100', 9100);
+            $printer = new Printer($connector);
+
+            /* 1. CETAK LOGO */
+            $printer->feed();
+            $logoPath = storage_path('app/public/logo-qresta.png');
+            if (file_exists($logoPath)) {
+                $logo = EscposImage::load($logoPath);
+                $printer->setJustification(Printer::JUSTIFY_CENTER);
+                // Pilih salah satu method di bawah sesuai kecocokan printer anda
+                $printer->bitImage($logo);
+                // $printer->graphics($logo); // Gunakan ini jika bitImage tidak muncul
+                $printer->feed();
+            }
+
+            /* 2. NAMA CABANG & DETAIL */
+            $printer->setJustification(Printer::JUSTIFY_CENTER);
+            $printer->text('QRESTA cabang ' . $branchName . "\n");
+            $printer->text("--------------------------------\n");
+
+            /* 3. NOMOR MEJA */
+            $printer->selectPrintMode(Printer::MODE_DOUBLE_WIDTH | Printer::MODE_DOUBLE_HEIGHT);
+            $printer->text("MEJA $tableNumber\n");
+            $printer->feed();
+
+            /* 4. QR CODE */
+            $printer->qrCode($url, Printer::QR_ECLEVEL_L, 8);
+            $printer->feed();
+
+            /* 5. FOOTER */
+            $printer->selectPrintMode();
+            $printer->text("Scan untuk mulai memesan\n");
+            $printer->text(now()->format('d/m/Y H:i') . "\n");
+            $printer->feed(6);
+
+            $printer->cut();
+            $printer->close();
+        } catch (\Exception $e) {
+            \Log::error('Gagal cetak Logo/QR: ' . $e->getMessage());
         }
     }
 
@@ -41,20 +88,15 @@ new class extends Component
             'table_id' => 'required|exists:tables,id',
         ]);
 
-
         // 1. CEK APAKAH ADA ORDER YANG BELUM LUNAS DI MEJA INI
-        $hasUnpaidOrder = Order::where('table_id', $this->table_id)
-            ->where('payment_status', 'unpaid')
-            ->exists();
+        $hasUnpaidOrder = Order::where('table_id', $this->table_id)->where('payment_status', 'unpaid')->exists();
 
         if ($hasUnpaidOrder) {
             $this->dispatch('toast', type: 'error', text: 'Meja ini masih memiliki pesanan yang belum dibayar!');
             return; // Hentikan proses jika masih ada hutang
         }
 
-        $activeSession = TableSession::where('table_id', $this->table_id)
-            ->where('status', 'active')
-            ->first();
+        $activeSession = TableSession::where('table_id', $this->table_id)->where('status', 'active')->first();
 
         if (!$activeSession) {
             $this->token = Str::random(16);
@@ -73,19 +115,17 @@ new class extends Component
         $this->url = url("/s/{$this->token}");
 
         // 3. GENERATE QR CODE
-        $renderer = new ImageRenderer(
-            new RendererStyle(400),
-            new SvgImageBackEnd()
-        );
+        $renderer = new ImageRenderer(new RendererStyle(400), new SvgImageBackEnd());
         $writer = new Writer($renderer);
-        
+
         $this->qrCodeRawSvg = $writer->writeString($this->url);
-        
+
         // Ambil data untuk tampilan label
-        $table = Table::find($this->table_id); 
+        $table = Table::find($this->table_id);
         $this->branchName = Branch::find($this->branch_id)->name;
         $this->tableNumber = $table->number;
 
+        $this->printToThermal($this->url, $this->tableNumber, $this->branchName);
         $this->dispatch('toast', type: 'success', text: 'QR Code Sesi Aktif Berhasil Dimuat!');
     }
 
@@ -94,9 +134,7 @@ new class extends Component
         return $this->view([
             'branches' => \App\Models\Branch::all(),
             // Ambil meja hanya jika branch_id sudah terisi
-            'tables' => $this->branch_id 
-                ? \App\Models\Table::where('branch_id', $this->branch_id)->get() 
-                : []
+            'tables' => $this->branch_id ? \App\Models\Table::where('branch_id', $this->branch_id)->get() : [],
         ])->title('Generate QR Code');
     }
 };
@@ -116,11 +154,10 @@ new class extends Component
                     </h3>
 
                     <div>
-                        <x-select label="Pilih Cabang" name="branch_id" wire:model.live="branch_id"
-                            :disabled="(!Auth::user()->can('manage-branches'))">
+                        <x-select label="Pilih Cabang" name="branch_id" wire:model.live="branch_id" :disabled="!Auth::user()->can('manage-branches')">
                             <option value="">-- Pilih Cabang --</option>
-                            @foreach($branches as $branch)
-                            <option value="{{ $branch->id }}">{{ $branch->name }} ({{ $branch->code }})</option>
+                            @foreach ($branches as $branch)
+                                <option value="{{ $branch->id }}">{{ $branch->name }} ({{ $branch->code }})</option>
                             @endforeach
                         </x-select>
                     </div>
@@ -128,11 +165,11 @@ new class extends Component
                     {{-- Dropdown Meja (Muncul jika Cabang sudah dipilih) --}}
                     <flux:select wire:model="table_id" label="Pilih Meja">
                         <flux:select.option value="">-- Pilih Nomor Meja --</flux:select.option>
-                        @foreach($tables as $table)
-                        <flux:select.option value="{{ $table->id }}">
-                            Meja {{ $table->number }}
-                            {{-- Anda bisa tambah badge status di sini nanti --}}
-                        </flux:select.option>
+                        @foreach ($tables as $table)
+                            <flux:select.option value="{{ $table->id }}">
+                                Meja {{ $table->number }}
+                                {{-- Anda bisa tambah badge status di sini nanti --}}
+                            </flux:select.option>
                         @endforeach
                     </flux:select>
                 </div>
@@ -147,32 +184,33 @@ new class extends Component
             <div class="flex flex-col items-center">
                 <div id="printable-qr"
                     class="print-area p-8 bg-white border-2 border-dashed border-zinc-200 rounded-3xl flex flex-col items-center min-h-[350px] justify-center w-full max-w-[300px]">
-                    @if($qrCodeRawSvg)
-                    <div class="bg-white p-2 mb-4">
-                        {!! $qrCodeRawSvg !!}
-                    </div>
-                    <div class="text-center space-y-1">
-                        <h2 class="text-xl font-black text-zinc-900 tracking-tight">QResta</h2>
-                        <p class="text-xs font-medium text-zinc-500 uppercase tracking-widest">{{ $branchName }}</p>
-                        <div class="mt-4 py-1 px-3 bg-zinc-900 text-white rounded-lg inline-block">
-                            <span class="text-sm font-bold">MEJA {{ $tableNumber }}</span>
+                    @if ($qrCodeRawSvg)
+                        <div class="bg-white p-2 mb-4">
+                            {!! $qrCodeRawSvg !!}
                         </div>
-                        <p class="text-[10px] text-zinc-400 mt-4 font-mono">{{ $url }}</p>
-                    </div>
+                        <div class="text-center space-y-1">
+                            <h2 class="text-xl font-black text-zinc-900 tracking-tight">QResta</h2>
+                            <p class="text-xs font-medium text-zinc-500 uppercase tracking-widest">{{ $branchName }}
+                            </p>
+                            <div class="mt-4 py-1 px-3 bg-zinc-900 text-white rounded-lg inline-block">
+                                <span class="text-sm font-bold">MEJA {{ $tableNumber }}</span>
+                            </div>
+                            <p class="text-[10px] text-zinc-400 mt-4 font-mono">{{ $url }}</p>
+                        </div>
                     @else
-                    <div class="text-center text-zinc-300">
-                        <flux:icon.qr-code class="w-16 h-16 mx-auto mb-3 opacity-20" />
-                        <p class="text-sm">Pilih meja untuk<br>generate QR Code</p>
-                    </div>
+                        <div class="text-center text-zinc-300">
+                            <flux:icon.qr-code class="w-16 h-16 mx-auto mb-3 opacity-20" />
+                            <p class="text-sm">Pilih meja untuk<br>generate QR Code</p>
+                        </div>
                     @endif
                 </div>
 
-                @if($qrCodeRawSvg)
-                <div class="mt-6 no-print w-full max-w-[300px]">
-                    <flux:button icon="printer" variant="subtle" class="w-full" onclick="window.print()">
-                        Cetak QR Code
-                    </flux:button>
-                </div>
+                @if ($qrCodeRawSvg)
+                    <div class="mt-6 no-print w-full max-w-[300px]">
+                        <flux:button icon="printer" variant="subtle" class="w-full" onclick="window.print()">
+                            Cetak QR Code
+                        </flux:button>
+                    </div>
                 @endif
             </div>
         </div>
