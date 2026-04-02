@@ -121,7 +121,7 @@ new class extends Component {
         $percentageChange = 0;
         if ($yesterdayRevenue > 0) {
             $percentageChange = (($todayRevenue - $yesterdayRevenue) / $yesterdayRevenue) * 100;
-        } elseif ($todaySales > 0) {
+        } elseif ($todayRevenue > 0) {
             $percentageChange = 100; // Jika kemarin 0 dan hari ini ada penjualan
         }
 
@@ -382,6 +382,6 @@ new class extends Component {
         // Jalankan saat load, navigasi, dan resize (opsional)
         document.addEventListener('livewire:navigated', renderDynamicChart);
         window.addEventListener('resize', _.debounce(renderDynamicChart,
-        200)); // Gunakan debounce agar tidak berat saat resize
+            200)); // Gunakan debounce agar tidak berat saat resize
     </script>
 </div>

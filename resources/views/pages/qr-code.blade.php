@@ -44,19 +44,19 @@ new class extends Component {
 
             /* 1. CETAK LOGO */
             $printer->feed();
-            $logoPath = storage_path('app/public/logo-qresta.png');
+            $logoPath = storage_path('app/public/qresta-300.png');
             if (file_exists($logoPath)) {
                 $logo = EscposImage::load($logoPath);
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
                 // Pilih salah satu method di bawah sesuai kecocokan printer anda
                 $printer->bitImage($logo);
                 // $printer->graphics($logo); // Gunakan ini jika bitImage tidak muncul
-                $printer->feed(2);
+                $printer->feed();
             }
 
             /* 2. NAMA CABANG & DETAIL */
             $printer->setJustification(Printer::JUSTIFY_CENTER);
-            $printer->text('QRESTA cabang ' . $branchName . "\n");
+            $printer->text('cabang ' . $branchName . "\n");
             $printer->text("--------------------------------\n");
 
             /* 3. NOMOR MEJA */
