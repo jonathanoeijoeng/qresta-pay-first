@@ -183,19 +183,23 @@ new class extends Component {
             {{-- Sisi Kanan: Preview QR (Print Area) --}}
             <div class="flex flex-col items-center">
                 <div id="printable-qr"
-                    class="print-area p-8 bg-white border-2 border-dashed border-zinc-200 rounded-3xl flex flex-col items-center min-h-[350px] justify-center w-full max-w-[300px]">
+                    class="print-area p-8 bg-white rounded-3xl flex flex-col items-center min-h-[350px] justify-center w-full max-w-[300px]
+                    {{ $qrCodeRawSvg ? 'border-0' : 'border-2 border-dashed border-zinc-200' }}">
                     @if ($qrCodeRawSvg)
-                        <div class="bg-white p-2 mb-4">
-                            {!! $qrCodeRawSvg !!}
-                        </div>
-                        <div class="text-center space-y-1">
-                            <h2 class="text-xl font-black text-zinc-900 tracking-tight">QResta</h2>
-                            <p class="text-xs font-medium text-zinc-500 uppercase tracking-widest">{{ $branchName }}
-                            </p>
-                            <div class="mt-4 py-1 px-3 bg-zinc-900 text-white rounded-lg inline-block">
-                                <span class="text-sm font-bold">MEJA {{ $tableNumber }}</span>
+                        <div class="flex flex-col items-center border border-zinc-100 rounded-3xl">
+                            <div class="bg-white mb-2">
+                                {!! $qrCodeRawSvg !!}
                             </div>
-                            <p class="text-[10px] text-zinc-400 mt-4 font-mono">{{ $url }}</p>
+                            <div class="text-center space-y-1 mb-8">
+                                <h2 class="text-xl font-black text-zinc-900 tracking-tight">QResta</h2>
+                                <p class="text-xs font-medium text-zinc-500 uppercase tracking-widest">
+                                    {{ $branchName }}
+                                </p>
+                                <div class="mt-4 py-1 px-3 bg-zinc-900 text-white rounded-lg inline-block">
+                                    <span class="text-sm font-bold">MEJA {{ $tableNumber }}</span>
+                                </div>
+                                <p class="text-[10px] text-zinc-400 mt-4 font-mono">{{ $url }}</p>
+                            </div>
                         </div>
                     @else
                         <div class="text-center text-zinc-300">
@@ -204,14 +208,6 @@ new class extends Component {
                         </div>
                     @endif
                 </div>
-
-                @if ($qrCodeRawSvg)
-                    <div class="mt-6 no-print w-full max-w-[300px]">
-                        <flux:button icon="printer" variant="subtle" class="w-full" onclick="window.print()">
-                            Cetak QR Code
-                        </flux:button>
-                    </div>
-                @endif
             </div>
         </div>
     </div>
