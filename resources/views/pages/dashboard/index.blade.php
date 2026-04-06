@@ -381,7 +381,16 @@ new class extends Component {
 
         // Jalankan saat load, navigasi, dan resize (opsional)
         document.addEventListener('livewire:navigated', renderDynamicChart);
-        window.addEventListener('resize', _.debounce(renderDynamicChart,
-            200)); // Gunakan debounce agar tidak berat saat resize
+        const initDebounce = () => {
+            if (window.Alpine) {
+                const debouncedRender = Alpine.debounce(renderDynamicChart, 200);
+                window.addEventListener('resize', debouncedRender);
+            } else {
+                // Jika belum ada, tunggu sebentar atau gunakan cara manual
+                setTimeout(initDebounce, 10);
+            }
+        };
+
+        initDebounce();
     </script>
 </div>
