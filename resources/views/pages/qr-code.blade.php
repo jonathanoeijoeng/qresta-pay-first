@@ -125,7 +125,7 @@ new class extends Component {
         $this->branchName = Branch::find($this->branch_id)->name;
         $this->tableNumber = $table->number;
 
-        $this->printToThermal($this->url, $this->tableNumber, $this->branchName);
+        // $this->printToThermal($this->url, $this->tableNumber, $this->branchName);
         $this->dispatch('toast', type: 'success', text: 'QR Code Sesi Aktif Berhasil Dimuat!');
     }
 

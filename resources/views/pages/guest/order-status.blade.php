@@ -6,14 +6,13 @@ use App\Models\Order;
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
-use BaconQrCode\Writer; 
-use Livewire\Attributes\On; 
-use App\Events\OrderUpdated; 
+use BaconQrCode\Writer;
+use Livewire\Attributes\On;
+use App\Events\OrderUpdated;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-new class extends Component
-{
+new class extends Component {
     public $order;
     public $qrCodeSvg;
     public $showQrModal = false;
@@ -22,12 +21,11 @@ new class extends Component
 
     public function mount($order_number)
     {
-        $this->order = Order::with(['items.menu','table'])
+        $this->order = Order::with(['items.menu', 'table'])
             ->where('order_number', $order_number)
             ->firstOrFail();
         $this->checkIfPaid();
         $this->generateQrCode();
-
     }
 
     public function checkIfPaid()
@@ -35,7 +33,7 @@ new class extends Component
         if ($this->order->payment_status === 'paid') {
             // Hapus session agar tidak bisa pesan lagi tanpa scan QR baru
             session()->forget(['active_order_id', 'customer_table_id']);
-            
+
             // Memicu Alpine.js untuk menampilkan modal sukses
             $this->dispatch('order-paid-success');
         }
@@ -55,7 +53,7 @@ new class extends Component
     {
         // Kita simpan di session agar halaman menu tahu ada "Order Gantung"
         session(['merging_order_id' => $this->order->id]);
-        
+
         return redirect()->route('guest.menu');
     }
 
@@ -67,9 +65,9 @@ new class extends Component
     }
 
     public function refreshStatus()
-    {   
+    {
         $this->order->refresh();
-        Log::info('pengen tahu isi $order di order-status'. $this->order);
+        Log::info('pengen tahu isi $order di order-status' . $this->order);
         if ($this->order->payment_status === 'paid') {
             // Memicu Alpine.js untuk menampilkan ucapan terima kasih
             session()->forget(['active_order_id', 'customer_table_id', 'merging_order_id']);
@@ -80,10 +78,7 @@ new class extends Component
     public function generateQrCode()
     {
         // 1. Set style (Ukuran 150px)
-        $renderer = new ImageRenderer(
-            new RendererStyle(150),
-            new SvgImageBackEnd()
-        );
+        $renderer = new ImageRenderer(new RendererStyle(150), new SvgImageBackEnd());
 
         // 2. Buat Writer
         $writer = new Writer($renderer);
@@ -96,29 +91,28 @@ new class extends Component
     {
         try {
             $apiKey = config('services.xendit.key');
-            
+
             // Kirim request ke API Xendit secara manual
             // withBasicAuth akan otomatis melakukan Base64 encoding {key}:
-            $response = Http::withBasicAuth($apiKey, '')
-                ->post('https://api.xendit.co/v2/invoices', [
-                    'external_id' => (string) $this->order->order_number,
-                    'description' => "Pembayaran QResta #{$this->order->order_number} - Meja {$this->order->table->number}",
-                    'amount'      => (double) $this->order->total_amount,
-                    'currency'    => 'IDR',
-                    'payment_methods' => [
-                        'QRIS',         // Wajib ada untuk kemudahan scan
-                        'CREDIT_CARD',  // Mengaktifkan opsi Kartu Kredit (Visa/Mastercard/JCB)
-                        'BCA',          // Virtual Account tetap disarankan sebagai cadangan
-                        'BNI',
-                        'BRI',
-                        'MANDIRI'
-                    ],
-                    'customer'    => [
-                        'given_names' => $this->order->customer_name ?? "Tamu Meja " . $this->order->table->number,
-                    ],
-                    'success_redirect_url' => route('guest.order-status', $this->order->order_number),
-                    'failure_redirect_url' => route('guest.order-status', $this->order->order_number),
-                ]);
+            $response = Http::withBasicAuth($apiKey, '')->post('https://api.xendit.co/v2/invoices', [
+                'external_id' => (string) $this->order->order_number,
+                'description' => "Pembayaran QResta #{$this->order->order_number} - Meja {$this->order->table->number}",
+                'amount' => (float) $this->order->total_amount,
+                'currency' => 'IDR',
+                'payment_methods' => [
+                    'QRIS', // Wajib ada untuk kemudahan scan
+                    'CREDIT_CARD', // Mengaktifkan opsi Kartu Kredit (Visa/Mastercard/JCB)
+                    'BCA', // Virtual Account tetap disarankan sebagai cadangan
+                    'BNI',
+                    'BRI',
+                    'MANDIRI',
+                ],
+                'customer' => [
+                    'given_names' => $this->order->customer_name ?? 'Tamu Meja ' . $this->order->table->number,
+                ],
+                'success_redirect_url' => route('guest.order-status', $this->order->order_number),
+                'failure_redirect_url' => route('guest.order-status', $this->order->order_number),
+            ]);
 
             if ($response->failed()) {
                 throw new \Exception($response->body());
@@ -128,18 +122,16 @@ new class extends Component
 
             // Update database Intel NUC Anda
             $this->order->update([
-                'payment_token' => $invoice['id']
+                'payment_token' => $invoice['id'],
             ]);
 
             // Redirect ke portal pembayaran Xendit
             return redirect()->away($invoice['invoice_url']);
-
         } catch (\Exception $e) {
             Log::error('Xendit Manual HTTP Error: ' . $e->getMessage());
             $this->dispatch('toast', type: 'error', text: 'Gagal membuat tagihan. Silakan cek koneksi atau API Key.');
         }
     }
-
 
     #[Layout('components.layouts.guest')]
     public function render()
@@ -149,14 +141,14 @@ new class extends Component
         if ($this->order) {
             $summaryItems = $this->order->items->groupBy('menu_id')->map(function ($group) {
                 return [
-                    'name'           => $group->first()->menu->name,
-                    'quantity'       => $group->sum('quantity'),
+                    'name' => $group->first()->menu->name,
+                    'quantity' => $group->sum('quantity'),
                     'total_subtotal' => $group->sum('subtotal'),
                 ];
             });
         }
         return $this->view([
-            'summaryItems' => $summaryItems
+            'summaryItems' => $summaryItems,
         ])->layout('components.layouts.guest');
     }
 };
@@ -165,26 +157,25 @@ new class extends Component
 <div class="max-w-md mx-auto min-h-screen bg-zinc-50 p-6 dark:bg-zinc-800">
     <div class="text-center mb-4">
         <div class="inline-flex items-center justify-center w-20 h-20 bg-brand-100 rounded-full mb-4">
-            @if($order->status == 'pending')
-            <div class="animate-bounce text-brand-600 text-3xl">⏳</div>
+            @if ($order->status == 'pending')
+                <div class="animate-bounce text-brand-600 text-3xl">⏳</div>
             @elseif($order->status == 'processing')
-            <div class="animate-spin text-brand-600 text-3xl">🍳</div>
+                <div class="animate-spin text-brand-600 text-3xl">🍳</div>
             @else
-            <div class="text-green-600 text-3xl">✅</div>
+                <div class="text-green-600 text-3xl">✅</div>
             @endif
         </div>
         <h1 class="text-2xl font-black text-brand-600 dark:text-brand-600 uppercase">Pesanan Diterima!</h1>
         <p class="text-zinc-500 dark:text-zinc-100">Nomor Antrian: <span
-                class="font-bold text-brand-600 dark:text-brand-600">#{{
-                $order->order_number }}</span>
+                class="font-bold text-brand-600 dark:text-brand-600">#{{ $order->order_number }}</span>
         </p>
-        @if($order->status == 'completed-served')
-        <div class="mt-8">
-            <button wire:click="$set('showPaymentModal', true)"
-                class="w-full bg-brand-500 hover:bg-brand-600 py-4 rounded-2xl text-white font-black uppercase tracking-widest shadow-lg transition-all">
-                Continue to Payment
-            </button>
-        </div>
+        @if ($order->payment_status == 'unpaid')
+            <div class="mt-8">
+                <button wire:click="$set('showPaymentModal', true)"
+                    class="w-full bg-brand-500 hover:bg-brand-600 py-4 rounded-2xl text-white font-black uppercase tracking-widest shadow-lg transition-all">
+                    Bayar Sekarang
+                </button>
+            </div>
         @endif
         <div x-show="$wire.showPaymentModal"
             class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/60 backdrop-blur-sm p-4">
@@ -234,33 +225,40 @@ new class extends Component
     <div class="bg-white dark:bg-zinc-400 rounded-3xl p-6 shadow-sm border border-zinc-100 mb-6">
         <div class="space-y-6">
             @php
-            $steps = [
-            ['id' => 'pending', 'label' => 'Pesanan Terkirim', 'desc' => 'Menunggu konfirmasi dapur'],
-            ['id' => 'processing', 'label' => 'Sedang Dimasak', 'desc' => 'Koki sedang menyiapkan menu'],
-            ['id' => 'completed-served', 'label' => 'Siap Disajikan', 'desc' => 'Pesanan segera diantarkan ke meja ' .
-            $order->table->number],
-            ];
-            $currentReached = true;
+                $steps = [
+                    ['id' => 'pending', 'label' => 'Pesanan Terkonfirmasi', 'desc' => 'Menunggu konfirmasi dapur'],
+                    ['id' => 'processing', 'label' => 'Sedang Dimasak', 'desc' => 'Koki sedang menyiapkan menu'],
+                    [
+                        'id' => 'completed-served',
+                        'label' => 'Siap Disajikan',
+                        'desc' => 'Pesanan segera diantarkan ke meja ' . $order->table->number,
+                    ],
+                ];
+                $currentReached = true;
             @endphp
 
-            @foreach($steps as $step)
-            <div class="flex gap-4">
-                <div class="flex flex-col items-center">
-                    <div
-                        class="w-6 h-6 rounded-full {{ $order->status == $step['id'] ? 'bg-brand-600 ring-4 ring-brand-100' : ($currentReached ? 'bg-brand-600' : 'bg-zinc-200') }}">
+            @foreach ($steps as $step)
+                <div class="flex gap-4">
+                    <div class="flex flex-col items-center">
+                        <div
+                            class="w-6 h-6 rounded-full {{ $order->status == $step['id'] ? 'bg-brand-600 ring-4 ring-brand-100' : ($currentReached ? 'bg-brand-600' : 'bg-zinc-200') }}">
+                        </div>
+                        @if (!$loop->last)
+                            <div
+                                class="w-0.5 h-10 {{ $currentReached && $order->status != $step['id'] ? 'bg-brand-600' : 'bg-zinc-200' }}">
+                            </div>
+                        @endif
                     </div>
-                    @if(!$loop->last) <div
-                        class="w-0.5 h-10 {{ $currentReached && $order->status != $step['id'] ? 'bg-brand-600' : 'bg-zinc-200' }}">
-                    </div> @endif
+                    <div>
+                        <h3
+                            class="font-bold text-sm {{ $order->status == $step['id'] ? 'text-brand-600' : 'text-zinc-800' }}">
+                            {{ $step['label'] }}</h3>
+                        <p class="text-xs text-zinc-500">{{ $step['desc'] }}</p>
+                    </div>
                 </div>
-                <div>
-                    <h3
-                        class="font-bold text-sm {{ $order->status == $step['id'] ? 'text-brand-600' : 'text-zinc-800' }}">
-                        {{ $step['label'] }}</h3>
-                    <p class="text-xs text-zinc-500">{{ $step['desc'] }}</p>
-                </div>
-            </div>
-            @if($order->status == $step['id']) @php $currentReached = false; @endphp @endif
+                @if ($order->status == $step['id'])
+                    @php $currentReached = false; @endphp
+                @endif
             @endforeach
         </div>
     </div>
@@ -268,22 +266,22 @@ new class extends Component
     <div class="bg-zinc-600 text-zinc-50 rounded-3xl p-6 shadow-xl">
         <h4 class="text-xs uppercase tracking-widest font-bold text-zinc-100 mb-4">Ringkasan Pesanan</h4>
         <div class="space-y-3 mb-4 border-b border-white/10 pb-4">
-            @foreach($summaryItems as $item)
-            <div class="flex justify-between text-sm">
-                <span>{{ $item['quantity'] }}x {{ $item['name'] }}</span>
-                <span>IDR {{ number_format($item['total_subtotal'], 0, ',', ',') }}</span>
-            </div>
+            @foreach ($summaryItems as $item)
+                <div class="flex justify-between text-sm">
+                    <span>{{ $item['quantity'] }}x {{ $item['name'] }}</span>
+                    <span>IDR {{ number_format($item['total_subtotal'], 0, ',', ',') }}</span>
+                </div>
             @endforeach
         </div>
         <div class="flex justify-between">
             <span>Sub Total</span>
-            <span class="text-brand-600 font-semibold">IDR {{ number_format($order->items->sum('subtotal'), 0, ',', ',')
-                }}</span>
+            <span class="text-brand-600 font-semibold">IDR
+                {{ number_format($order->items->sum('subtotal'), 0, ',', ',') }}</span>
         </div>
         <div class="flex justify-between">
-            <div class="flex gap-2 items-baseline"><span>PB 1</span><span>{{ number_format($order->tax_percentage, 0,
-                    ',', ',')
-                    }}%</span></div>
+            <div class="flex gap-2 items-baseline"><span>PB
+                    1</span><span>{{ number_format($order->tax_percentage, 0, ',', ',') }}%</span>
+            </div>
             <span class="text-brand-600 font-semibold">IDR {{ number_format($order->tax_amount, 0, ',', ',') }}</span>
         </div>
         <div class="flex justify-between font-bold text-lg">
@@ -297,40 +295,39 @@ new class extends Component
             Lagi?</x-button>
     </div>
     {{-- Modal to show image --}}
-    @if($showQrModal)
-    <div
-        class="fixed inset-0 bg-black/90 z-[10001] flex items-center justify-center p-6 animate-in fade-in duration-300">
-        {{-- Tombol Tutup di Pojok Kanan Atas --}}
-        <button wire:click="$set('showQrModal', false)"
-            class="absolute top-6 right-6 text-white/50 hover:text-white transition-colors">
-            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-        </button>
-
-        {{-- Kontainer Utama QR --}}
+    @if ($showQrModal)
         <div
-            class="w-full max-w-sm bg-white p-4 rounded-[2.5rem] shadow-[0_0_50px_rgba(255,255,255,0.1)] flex flex-col items-center justify-center transform animate-in zoom-in-95 duration-300">
-            <h3 class="text-zinc-900 font-black text-xl tracking-tight">QResta</h3><span>{{
-                $order->table->branch->name
-                }}</span>
-            <div class="w-full h-full [&>svg]:w-full [&>svg]:h-full">
-                {!! $qrCodeSvg !!}
+            class="fixed inset-0 bg-black/90 z-[10001] flex items-center justify-center p-6 animate-in fade-in duration-300">
+            {{-- Tombol Tutup di Pojok Kanan Atas --}}
+            <button wire:click="$set('showQrModal', false)"
+                class="absolute top-6 right-6 text-white/50 hover:text-white transition-colors">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+
+            {{-- Kontainer Utama QR --}}
+            <div
+                class="w-full max-w-sm bg-white p-4 rounded-[2.5rem] shadow-[0_0_50px_rgba(255,255,255,0.1)] flex flex-col items-center justify-center transform animate-in zoom-in-95 duration-300">
+                <h3 class="text-zinc-900 font-black text-xl tracking-tight">QResta</h3>
+                <span>{{ $order->table->branch->name }}</span>
+                <div class="w-full h-full [&>svg]:w-full [&>svg]:h-full">
+                    {!! $qrCodeSvg !!}
+                </div>
+
+                <div class="mt-6 text-center">
+                    <p class="text-zinc-500 text-xs font-medium uppercase tracking-widest">Tunjukkan QR code ini ke
+                        kasir
+                    </p>
+                    <p class="text-zinc-400 text-xs font-medium uppercase tracking-widest mt-1">Meja
+                        {{ $order->table->number }}
+                    </p>
+                </div>
             </div>
 
-            <div class="mt-6 text-center">
-                <p class="text-zinc-500 text-xs font-medium uppercase tracking-widest">Tunjukkan QR code ini ke
-                    kasir
-                </p>
-                <p class="text-zinc-400 text-xs font-medium uppercase tracking-widest mt-1">Meja {{
-                    $order->table->number }}
-                </p>
-            </div>
+            {{-- Overlay Klik untuk Tutup --}}
+            <div wire:click="$set('showQrModal', false)" class="absolute inset-0 -z-10"></div>
         </div>
-
-        {{-- Overlay Klik untuk Tutup --}}
-        <div wire:click="$set('showQrModal', false)" class="absolute inset-0 -z-10"></div>
-    </div>
     @endif
 
     {{-- Modal konfirmasi order baru --}}
@@ -373,9 +370,9 @@ new class extends Component
             </div>
         </div>
     </div>
-    <div <div x-data="{ 
+    <div <div x-data="{
         showThanks: false,
-     }" x-on:order-paid-success.window="showThanks = true" class="relative">
+    }" x-on:order-paid-success.window="showThanks = true" class="relative">
 
         <template x-if="showThanks">
             <div class="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-zinc-800/70 backdrop-blur-md">
