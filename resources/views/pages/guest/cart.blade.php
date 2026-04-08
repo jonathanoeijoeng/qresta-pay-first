@@ -185,7 +185,7 @@ new class extends Component {
 
                 // Update database Intel NUC Anda
                 $this->order->update([
-                    'payment_token' => $invoice['id'],
+                    'payment_status' => 'unpaid',
                 ]);
 
                 // Redirect ke portal pembayaran Xendit
