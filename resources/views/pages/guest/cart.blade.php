@@ -10,6 +10,7 @@ use Livewire\Attributes\Computed;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Events\OrderSent;
 
 new class extends Component {
     public $editingItemId = null;
@@ -17,19 +18,31 @@ new class extends Component {
     public bool $showEditModal = false;
     public bool $isConfirmed = false; // Flag untuk pindah ke view ringkasan & bayar
     public $order;
+    public $orderNumber;
 
     public function mount()
     {
-        $activeOrderId = session('active_order_id');
-        if (!$activeOrderId) {
+        // Ambil order_number dari URL (?order=QPF-...)
+        $this->orderNumber = request()->query('order');
+
+        if (!$this->orderNumber) {
+            // Jika tidak ada di URL, coba fallback ke session (opsional)
             return redirect()->route('guest.menu');
         }
 
-        $this->order = Order::with('items')->find($activeOrderId);
+        // Cari order berdasarkan number
+        $this->order = \App\Models\Order::with('items.menu')
+            ->where('order_number', $this->orderNumber)
+            ->where('payment_status', 'unpaid') // Pastikan hanya bisa akses yang belum bayar
+            ->first();
 
         if (!$this->order) {
-            session()->forget('active_order_id');
-            return redirect()->route('guest.menu');
+            return redirect()->route('guest.menu')->with('error', 'Pesanan tidak ditemukan');
+        }
+
+        // Pastikan meja di order cocok dengan meja di session (Security Cross-Check)
+        if ($this->order->table_id !== session('customer_table_id')) {
+            return redirect()->route('invalid-access');
         }
     }
 
@@ -112,16 +125,10 @@ new class extends Component {
 
     public function confirmOrder()
     {
-        $orderId = session('active_order_id') ?? session('merging_order_id');
-        $order = Order::with('items')->find($orderId);
+        $order = Order::with('items')->where('order_number', $this->orderNumber)->first();
 
         if (!$order || $order->items->isEmpty()) {
             return $this->dispatch('notify', ['type' => 'error', 'message' => 'Keranjang kosong!']);
-        }
-
-        // Update semua item draft menjadi pending
-        foreach ($order->items->where('status', 'draft') as $item) {
-            $item->update(['status' => 'pending']);
         }
 
         $order->update([
@@ -133,6 +140,7 @@ new class extends Component {
         ]);
 
         $this->isConfirmed = true;
+        broadcast(new OrderSent($order))->toOthers();
     }
 
     public function pay($method)
@@ -233,14 +241,14 @@ new class extends Component {
             </h1>
         </header>
 
-        <main class="p-4 space-y-4">
+        <main class="p-4 space-y-4 pb-32">
             @if (!$isConfirmed)
                 {{-- TAMPILAN SEBELUM KONFIRMASI (EDITING MODE) --}}
-                @php $pendingItems = $items->where('status', 'draft'); @endphp
+                @php $pendingItems = $items->whereIn('status', ['pending']); @endphp
                 @if ($pendingItems->isNotEmpty())
                     <div>
-                        <p class="text-[10px] font-black uppercase tracking-widest text-brand-500 mb-3 px-2">Tambahan
-                            Baru</p>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-brand-500 mb-3 px-2">Daftar
+                            Pesanan</p>
                         @foreach ($pendingItems as $item)
                             <div class="bg-white dark:bg-zinc-600 p-4 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-500 mb-3"
                                 wire:key="edit-{{ $item->id }}">
@@ -263,23 +271,6 @@ new class extends Component {
                                         <button wire:click="updateQty({{ $item->id }}, 1)"
                                             class="font-black px-1">+</button>
                                     </div>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                @endif
-
-                @php $orderedItems = $items->where('status', '!=', 'draft'); @endphp
-                @if ($orderedItems->isNotEmpty())
-                    <div class="opacity-60">
-                        <p class="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-3 px-2">Sudah
-                            Dipesan</p>
-                        @foreach ($orderedItems as $item)
-                            <div class="bg-zinc-200 dark:bg-zinc-700 p-4 rounded-2xl mb-3">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm font-bold">{{ $item->menu->name }} <span
-                                            class="text-zinc-500">x{{ $item->quantity }}</span></span>
-                                    <span class="text-xs">IDR {{ number_format($item->subtotal, 0, '.', ',') }}</span>
                                 </div>
                             </div>
                         @endforeach
@@ -326,7 +317,7 @@ new class extends Component {
             class="fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-700 p-6 border-t border-zinc-100 dark:border-zinc-600 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-50">
             @if (!$isConfirmed)
                 <div class="space-y-4">
-                    <a href="{{ route('guest.menu') }}"
+                    <a href="{{ route('guest.menu', ['order' => $order->order_number]) }}"
                         class="flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-zinc-200 dark:border-zinc-500 rounded-2xl text-zinc-500 font-bold text-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
                             stroke="currentColor" class="w-4 h-4">

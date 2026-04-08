@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('branch_id')->constrained()->onDelete('cascade');
             $table->string('number'); // Contoh: "01", "A1", atau "VIP-01"
             $table->integer('capacity')->default(4); // Kapasitas kursi
+            $table->string('qrcode_token')->nullable()->unique();
             $table->text('description')->nullable();
             $table->timestamps();
         });

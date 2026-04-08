@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class TableSeeder extends Seeder
 {
@@ -20,6 +21,7 @@ class TableSeeder extends Seeder
                     'branch_id' => $branch->id,
                     'number' => str_pad($i, 2, '0', STR_PAD_LEFT), // 01, 02, dst
                     'capacity' => 4,
+                    'qrcode_token' => Str::random(10),
                 ]);
             }
         }

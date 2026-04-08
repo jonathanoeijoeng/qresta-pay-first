@@ -30,7 +30,7 @@ class Order extends Model
     {
         static::creating(function ($order) {
             // Format: QRS-YYYYMMDD-RANDOM
-            $order->order_number = 'QRS-' . now()->format('Ymd') . '-' . strtoupper(Str::random(5));
+            $order->order_number = 'QPF-' . now()->format('Ymd') . '-' . strtoupper(Str::random(5));
         });
     }
 

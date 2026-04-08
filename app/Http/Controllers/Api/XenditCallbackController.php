@@ -50,15 +50,15 @@ class XenditCallbackController extends Controller
                 $order->update([
                     'payment_status' => 'paid',
                     'paid_at'        => now(),
-                    'payment_method' => $payload['payment_method'] ?? 'Xendit Online',
+                    'payment_method' => $payload['payment_channel'] ?? 'Xendit',
                     'payment_type'   => 'Online',
                 ]);
 
                 // 5. Broadcast ke Reverb/Echo (Agar UI Tamu di HP otomatis berubah)
                 // Ini akan memicu listener "refreshStatus" di Livewire Jonathan
                 // event(new OrderUpdated($order));
-                // broadcast(new OrderUpdated($order))->toOthers();
-                // broadcast(new OrderSent($order))->toOthers();
+                broadcast(new OrderUpdated($order))->toOthers();
+                broadcast(new OrderSent($order))->toOthers();
 
                 // Log::info("Xendit Callback: Order #{$orderNumber} marked as PAID.");
             }

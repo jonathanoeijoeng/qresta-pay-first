@@ -47,17 +47,13 @@ Route::middleware(['auth', 'role:super_admin|admin_cabang|cashier'])->group(func
 // --- ROUTE TAMU (Non-Auth / Publik) ---
 // 1. Jalur masuk dari Scan QR
 Route::get('/s/{token}', function ($token) {
-    // Cari berdasarkan qr_token
-    $table = TableSession::where('token', $token)->first();
+    $table = \App\Models\Table::where('qrcode_token', $token)->firstOrFail();
 
-    if (! $table) {
-        return redirect()->route('invalid-access');
-    }
     session([
-        'customer_table_id' => $table->table_id,
+        'customer_table_id' => $table->id,
+        'customer_branch_id' => $table->branch_id,
     ]);
 
-    // Redirect ke halaman menu
     return redirect()->route('guest.menu');
 })->name('order.scan');
 
@@ -70,5 +66,11 @@ Route::middleware(['order.env'])->group(function () {
 Route::get('/invalid-scan', function () {
     return view('pages.errors.invalid-scan');
 })->name('invalid-access');
+
+use App\Http\Controllers\InvoiceController;
+
+// Bisa diakses tamu dari halaman Order Status & kasir dari Dashboard
+Route::get('/download-invoice/{order_number}', [InvoiceController::class, 'download'])
+    ->name('invoice.download');
 
 require __DIR__.'/settings.php';

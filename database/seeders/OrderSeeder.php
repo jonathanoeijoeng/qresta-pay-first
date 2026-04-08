@@ -77,7 +77,7 @@ class OrderSeeder extends Seeder
                 $sequencePart = str_pad($i + 1, 3, '0', STR_PAD_LEFT);
                 $randomPart = strtoupper(Str::random(3));
 
-                $orderNumber = "QRS-{$datePart}-{$tablePart}-{$sequencePart}-{$randomPart}";
+                $orderNumber = "QPF-{$datePart}-{$tablePart}-{$sequencePart}-{$randomPart}";
 
                 $orderTime = $date->copy()->addSeconds(rand(0, 86399));
 

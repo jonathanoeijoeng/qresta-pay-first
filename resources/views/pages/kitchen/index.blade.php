@@ -10,6 +10,8 @@ use App\Events\OrderCompleted;
 use App\Events\OrderSent;
 use Livewire\Component;
 use App\Concerns\HasNotification;
+use Mike42\Escpos\Printer;
+use Mike42\Escpos\PrintConnectors\NetworkPrintConnector;
 
 new class extends Component {
     use HasNotification;
@@ -28,11 +30,79 @@ new class extends Component {
         return [
             "echo-private:order-sent-branch.{$branchId},OrderSent" => 'handleNewOrder',
         ];
+
+        $this->printToKitchen($order);
+
+        // LOGIKA PRINT: Hanya jika LUNAS dan statusnya PENDING
+        // if ($order->payment_status === 'paid' && $order->status === 'pending') {
+        //     // Cek apakah order ini sudah pernah diprint sebelumnya (Opsional tapi disarankan)
+        //     // Jika Anda belum punya kolom 'is_printed', abaikan pengecekan if ini
+        //     if (!$order->is_printed) {
+        //         try {
+        //             $this->printToKitchen($order);
+
+        //             // Tandai sudah diprint agar jika ada broadcast ulang tidak print lagi
+        //             $order->update(['is_printed' => true]);
+        //         } catch (\Exception $e) {
+        //             \Log::error('Printer Kitchen Error: ' . $e->getMessage());
+        //         }
+        //     }
+        // }
+    }
+
+    private function printToKitchen(Order $order)
+    {
+        $ip = '192.168.1.100'; // IP Printer Anda
+        $port = 9100; // Port standar printer thermal network
+
+        $connector = new NetworkPrintConnector($ip, $port, 3); // Timeout 3 detik
+        $printer = new Printer($connector);
+
+        try {
+            // --- Header ---
+            $printer->setJustification(Printer::JUSTIFY_CENTER);
+            $printer->selectPrintMode(Printer::MODE_DOUBLE_HEIGHT | Printer::MODE_DOUBLE_WIDTH);
+            $printer->feed();
+            $printer->text('TABLE #' . $order->table->number . "\n");
+            $printer->selectPrintMode(); // Reset mode
+            $printer->text('Order: ' . $order->order_number . "\n");
+            $printer->text(now()->format('d/m/Y H:i') . "\n");
+            $printer->text("--------------------------------\n");
+
+            // --- Items ---
+            $printer->setJustification(Printer::JUSTIFY_LEFT);
+            foreach ($order->items as $item) {
+                // Format: Qty x Nama Menu
+                $printer->setEmphasis(true);
+                $printer->text($item->quantity . 'x ' . $item->menu->name . "\n");
+                $printer->setEmphasis(false);
+
+                // Notes (jika ada)
+                if ($item->notes) {
+                    $printer->text('  * ' . $item->notes . "\n");
+                }
+                $printer->text("\n"); // Spasi antar item
+            }
+
+            // --- Footer ---
+            $printer->text("--------------------------------\n");
+            $printer->setJustification(Printer::JUSTIFY_CENTER);
+            $printer->text("KITCHEN COPY\n\n\n");
+            $printer->feed();
+
+            // Potong Kertas
+            $printer->cut();
+        } finally {
+            $printer->close();
+        }
     }
 
     public function handleNewOrder(Order $order)
     {
         $this->notifyAndRefresh('kitchen');
+        if ($order->payment_status === 'paid' && $order->status === 'pending') {
+            // $this->printToKitchen($order);
+        }
     }
 
     public function refreshStatus()

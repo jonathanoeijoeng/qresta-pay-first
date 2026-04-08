@@ -24,6 +24,7 @@ new class extends Component {
     public $selectedMenu = null; // Menyimpan objek menu yang akan ditambah
     public $tempNote = ''; // Menyimpan input catatan sementara
     public bool $showNoteModal = false;
+    public $order_number;
 
     public function mount()
     {
@@ -89,61 +90,40 @@ new class extends Component {
             if ($order) {
                 // Hitung jumlah item unik atau total quantity
                 $this->cartCount = $order->items->sum('quantity');
-
                 // Ambil subtotal (sebelum pajak) untuk tampilan ringkas
                 $this->cartTotal = $order->items->sum('subtotal');
+                $this->order_number = $order->order_number;
             } else {
-                $this->cartCount = 0;
-                $this->cartTotal = 0;
+                $this->reset(['cartCount', 'cartTotal', 'order_number']);
             }
         } else {
-            $this->cartCount = 0;
-            $this->cartTotal = 0;
+            $this->reset(['cartCount', 'cartTotal', 'order_number']);
         }
     }
 
     public function addToCartWithNote()
     {
-        // Safety check: Pastikan menu terpilih ada
         if (!$this->selectedMenu) {
             $this->showNoteModal = false;
             return;
         }
 
         $tableId = session('customer_table_id');
-        $mergingOrderId = session('merging_order_id');
+        $order = $this->getOrCreateOrder($tableId);
 
-        // --- KOREKSI LOGIKA DISINI ---
-        if ($mergingOrderId) {
-            $order = Order::find($mergingOrderId);
-
-            // Jika order merging tidak valid/sudah dibayar, bersihkan session & buat draft
-            if (!$order || $order->payment_status !== 'unpaid') {
-                session()->forget('merging_order_id');
-                $order = $this->getOrCreateDraftOrder($tableId);
-            }
-        } else {
-            // Jika tidak merging, gunakan logic draft biasa
-            $order = $this->getOrCreateDraftOrder($tableId);
-        }
-
-        // 1. Ambil harga terbaru
-        $menuData = \App\Models\Menu::query()->join('branch_menu', 'menus.id', '=', 'branch_menu.menu_id')->where('menus.id', $this->selectedMenu->id)->where('branch_menu.branch_id', $this->branchId)->select('branch_menu.price')->first();
+        // 1. Ambil harga
+        $menuData = DB::table('branch_menu')->where('menu_id', $this->selectedMenu->id)->where('branch_id', $this->branchId)->first();
 
         if (!$menuData) {
             return;
         }
         $price = (int) $menuData->price;
 
-        // Simpan active_order_id untuk kebutuhan floating cart/summary
-        session(['active_order_id' => $order->id]);
-
-        // 2. Tambah atau Update Item
+        // 2. Tambah/Update Item (Tanpa filter status draft)
         $existingItem = $order
             ->items()
             ->where('menu_id', $this->selectedMenu->id)
             ->where('notes', $this->tempNote ?: null)
-            ->where('status', 'draft')
             ->first();
 
         if ($existingItem) {
@@ -159,23 +139,14 @@ new class extends Component {
                 'price_at_order' => $price,
                 'subtotal' => $price,
                 'notes' => $this->tempNote ?: null,
-                'status' => 'draft',
+                'status' => 'pending', // Item juga langsung pending
             ]);
-        }
-
-        // 3. Update total_amount & reset status jika perlu
-        // Jika order yang sudah 'completed' ditambah item baru, koki harus tahu
-        $updateData = [
-            'total_amount' => (int) $order->items()->sum('subtotal'),
-        ];
-
-        if ($order->status === 'completed served') {
-            $updateData['status'] = 'pending'; // Reset agar koki lihat ada tambahan
         }
 
         $this->updateOrderTotals($order);
 
-        // 4. Cleanup & Refresh
+        // 3. Refresh
+        session(['active_order_id' => $order->id]);
         $this->reset(['showNoteModal', 'selectedMenu', 'tempNote']);
         $this->refreshCartSummary();
     }
@@ -183,36 +154,31 @@ new class extends Component {
     /**
      * Helper untuk mendapatkan atau membuat Order Draft
      */
-    private function getOrCreateDraftOrder($tableId)
+    private function getOrCreateOrder($tableId)
     {
-        $datePart = date('Ymd');
-
-        // 1. Cek dulu apakah sudah ada draft untuk meja ini hari ini
-        $existingOrder = \App\Models\Order::where('branch_id', $this->branchId)->where('table_id', $tableId)->where('status', 'draft')->whereDate('created_at', today())->first();
+        // Cari order yang belum dibayar (apapun statusnya, sekarang cuma ada pending)
+        $existingOrder = Order::where('table_id', $tableId)->where('branch_id', $this->branchId)->where('payment_status', 'unpaid')->whereDate('created_at', today())->latest()->first();
 
         if ($existingOrder) {
             return $existingOrder;
         }
 
-        // 2. Jika belum ada, tentukan Sequence (urutan transaksi ke-berapa hari ini di cabang tsb)
-        $sequence = \App\Models\Order::where('branch_id', $this->branchId)->whereDate('created_at', today())->count() + 1;
+        // Jika tidak ada, buat baru langsung dengan status pending
+        $datePart = date('Ymd');
+        $sequence = Order::where('branch_id', $this->branchId)->whereDate('created_at', today())->count() + 1;
+        $randomPart = strtoupper(Str::random(3));
 
-        // 3. Generate 3 digit random untuk security masking
-        $randomPart = strtoupper(\Illuminate\Support\Str::random(3));
-
-        // Format: QRS-20260331-007-001-AXB
         $orderNumber = sprintf('QRS-%s-%s-%s-%s', $datePart, str_pad($tableId, 3, '0', STR_PAD_LEFT), str_pad($sequence, 3, '0', STR_PAD_LEFT), $randomPart);
 
-        return \App\Models\Order::create([
+        return Order::create([
             'branch_id' => $this->branchId,
             'table_id' => $tableId,
             'order_number' => $orderNumber,
-            'status' => 'draft',
+            'status' => 'pending', // Langsung pending
             'payment_status' => 'unpaid',
             'total_amount' => 0,
             'tax_amount' => 0,
             'tax_percentage' => 11,
-            'created_at' => now(), // Memastikan filter whereDate tepat
         ]);
     }
 
@@ -409,7 +375,7 @@ new class extends Component {
                         <span class="font-bold text-sm">IDR {{ number_format($cartTotal, 0, '.', ',') }}</span>
                     </div>
                 </div>
-                <a href="{{ route('guest.cart') }}"
+                <a href="{{ route('guest.cart', ['order' => $this->order_number]) }}"
                     class="bg-brand-500 px-4 py-2 rounded-xl text-xs font-bold uppercase active:scale-95 transition-all">
                     Review Order
                 </a>
