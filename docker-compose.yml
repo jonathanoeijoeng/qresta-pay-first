@@ -1,9 +1,9 @@
 services:
-  qresta-app:
+  qresta-pay-first-app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: qresta-app
+    container_name: qresta-pay-first-app
     restart: always
     working_dir: /var/www
     environment:
@@ -20,9 +20,9 @@ services:
     networks:
       - hellojonathan-network
 
-  qresta-web:
+  qresta-pay-first-web:
     image: nginx:alpine
-    container_name: qresta-nginx
+    container_name: qresta-pay-first-nginx
     restart: always
     ports:
       - "8084:80"
@@ -32,14 +32,14 @@ services:
     networks:
       - hellojonathan-network
     depends_on:
-      - qresta-app
+      - qresta-pay-first-app
 
-  qresta-db:
+  qresta-pay-first-db:
     image: postgres:16-alpine
-    container_name: qresta-db
+    container_name: qresta-pay-first-db
     restart: always
     environment:
-      - POSTGRES_DB=qresta_db
+      - POSTGRES_DB=qresta-pay-db
       - POSTGRES_USER=qresta
       - POSTGRES_PASSWORD=password
       - TZ=Asia/Jakarta
@@ -51,11 +51,11 @@ services:
     networks:
       - hellojonathan-network
 
-  qresta-worker:
+  qresta-pay-first-worker:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: qresta-worker
+    container_name: qresta-pay-first-worker
     restart: always
     command: php artisan queue:work --tries=3
     volumes:
@@ -63,13 +63,13 @@ services:
     networks:
       - hellojonathan-network
     depends_on:
-      - qresta-app
+      - qresta-pay-first-app
 
-  qresta-scheduler:
+  qresta-pay-first-scheduler:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: qresta-scheduler
+    container_name: qresta-pay-first-scheduler
     restart: always
     command: sh -c "while [ true ]; do php artisan schedule:run --no-interaction & sleep 60; done"
     volumes:
@@ -77,13 +77,13 @@ services:
     networks:
       - hellojonathan-network
     depends_on:
-      - qresta-app
+      - qresta-pay-first-app
 
-  qresta-reverb:
+  qresta-pay-first-reverb:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: qresta-reverb
+    container_name: qresta-pay-first-reverb
     restart: always
     command: php artisan reverb:start --host=0.0.0.0 --port=8080
     ports:
@@ -95,7 +95,7 @@ services:
     networks:
       - hellojonathan-network
     depends_on:
-      - qresta-app
+      - qresta-pay-first-app
 
 networks:
   hellojonathan-network:
