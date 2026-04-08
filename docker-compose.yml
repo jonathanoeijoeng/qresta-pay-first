@@ -44,7 +44,7 @@ services:
       - POSTGRES_PASSWORD=password
       - TZ=Asia/Jakarta
     ports:
-      - "5432:5432" # Pakai 0.0.0.0 agar bisa diakses dari IP 192.168.x.x
+      - "5433:5432" # Pakai 0.0.0.0 agar bisa diakses dari IP 192.168.x.x
     volumes:
       # Data disimpan di folder luar agar tidak hilang saat container dihapus
       - ./docker-compose/postgres/data:/var/lib/postgresql/data
