@@ -101,7 +101,7 @@ new class extends Component {
     {
         $this->notifyAndRefresh('kitchen');
         if ($order->payment_status === 'paid' && $order->status === 'pending') {
-            // $this->printToKitchen($order);
+            $this->printToKitchen($order);
         }
     }
 
